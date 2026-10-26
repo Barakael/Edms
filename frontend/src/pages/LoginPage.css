@@ -1,0 +1,85 @@
+.login-page {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  position: relative;
+  padding: 1.5rem;
+  overflow: auto;
+}
+
+.login-wash {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 55% 45% at 12% 18%, rgba(59, 130, 246, 0.38), transparent 62%),
+    radial-gradient(ellipse 40% 36% at 92% 12%, rgba(239, 68, 68, 0.22), transparent 58%),
+    radial-gradient(ellipse 50% 40% at 80% 90%, rgba(37, 99, 235, 0.2), transparent 60%),
+    var(--color-night);
+  background-size: 140% 140%;
+  animation: night-drift 22s ease-in-out infinite;
+  z-index: 0;
+}
+
+.login-panel {
+  position: relative;
+  z-index: 1;
+  width: min(420px, 100%);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-shadow:
+    var(--shadow-soft),
+    0 0 40px rgba(59, 130, 246, 0.12);
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.login-brand h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #f8fbff;
+}
+
+.login-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 80% 18%, #ef4444 0 16%, transparent 17%),
+    linear-gradient(145deg, #60a5fa, #1d4ed8);
+  box-shadow: 0 0 18px rgba(59, 130, 246, 0.7);
+  animation: mark-glow 3.2s ease-in-out infinite;
+}
+
+.login-panel .btn-primary {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+@keyframes mark-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow:
+      0 0 18px rgba(59, 130, 246, 0.85),
+      0 0 8px rgba(239, 68, 68, 0.45);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-wash,
+  .login-mark {
+    animation: none;
+  }
+}
