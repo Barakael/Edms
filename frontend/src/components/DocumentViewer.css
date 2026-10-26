@@ -1,0 +1,179 @@
+.viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.viewer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-gray-100);
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius);
+}
+
+.viewer-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.viewer-pager {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.viewer-stage {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius);
+  overflow: auto;
+  max-height: 70vh;
+  cursor: default;
+  min-height: 200px;
+}
+
+.viewer-in-modal .viewer-stage {
+  max-height: none;
+}
+
+.viewer-stage.is-drop-target {
+  outline: 2px dashed var(--color-brand);
+  outline-offset: -4px;
+}
+
+.viewer-stage.is-place-mode {
+  cursor: crosshair;
+}
+
+.viewer-stage.is-place-mode .viewer-page {
+  cursor: crosshair;
+}
+
+.viewer-place-hint {
+  margin: 0;
+  padding: 0.35rem 1.25rem;
+  font-size: 0.85rem;
+  color: #f3f5f7;
+}
+
+.viewer-page {
+  position: relative;
+  display: inline-block;
+  margin: 0 auto;
+  max-width: 100%;
+  line-height: 0;
+}
+
+.viewer-canvas,
+.viewer-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0;
+  user-select: none;
+  -webkit-user-drag: none;
+  image-rendering: auto;
+}
+
+.watermark-diagonal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-35deg);
+  font-size: clamp(1.25rem, 4vw, 2.25rem);
+  font-weight: 700;
+  color: #1e3a5f;
+  opacity: 0.22;
+  pointer-events: none;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  z-index: 5;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.sig-placement {
+  position: absolute;
+  width: 120px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0.92;
+  z-index: 6;
+  line-height: 0;
+}
+
+.sig-placement img {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.sig-placement.is-editable {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+
+.sig-placement.is-editable:active {
+  cursor: grabbing;
+}
+
+.sig-delete {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid #fff;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.sig-delete:hover {
+  filter: brightness(1.08);
+}
+
+.drag-sign-tray {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.drag-sign-chip {
+  width: 140px;
+  height: auto;
+  background: #fff;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius);
+  cursor: grab;
+  padding: 0.25rem;
+  touch-action: none;
+}
+
+.drag-sign-chip:active {
+  cursor: grabbing;
+}
