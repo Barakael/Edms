@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -31,6 +32,7 @@ class User extends Authenticatable implements JWTSubject
         'phone',
         'password',
         'role',
+        'office_id',
         'active',
         'can_download',
         'signature_2fa_enabled',
@@ -79,6 +81,11 @@ class User extends Authenticatable implements JWTSubject
     public function isDirector(): bool
     {
         return $this->role === self::ROLE_DIRECTOR;
+    }
+
+    public function office(): BelongsTo
+    {
+        return $this->belongsTo(Office::class);
     }
 
     public function activeSignature(): HasOne

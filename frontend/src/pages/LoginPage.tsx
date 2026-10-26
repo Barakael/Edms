@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { StatusToast } from '../components/Toast'
+import { ThemeToggle } from '../theme'
 import './LoginPage.css'
 
 export function LoginPage() {
@@ -28,6 +29,7 @@ export function LoginPage() {
 
   return (
     <div className="login-page">
+      <ThemeToggle className="login-theme" />
       <div className="login-wash" aria-hidden />
       <form className="login-panel panel" onSubmit={onSubmit}>
         <div className="login-brand">

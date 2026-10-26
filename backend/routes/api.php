@@ -36,9 +36,13 @@ Route::middleware(['auth:api', 'jwt.version', 'throttle:120,1'])->group(function
     Route::delete('/registry/users/{user}', [RegistryUserController::class, 'destroy']);
 
     Route::get('/offices', [DepartmentController::class, 'offices']);
+    Route::post('/offices', [DepartmentController::class, 'storeOffice']);
+    Route::put('/offices/{office}', [DepartmentController::class, 'updateOffice']);
+    Route::delete('/offices/{office}', [DepartmentController::class, 'destroyOffice']);
     Route::get('/departments', [DepartmentController::class, 'index']);
     Route::post('/departments', [DepartmentController::class, 'store']);
     Route::put('/departments/{department}', [DepartmentController::class, 'update']);
+    Route::delete('/departments/{department}', [DepartmentController::class, 'destroy']);
 
     Route::get('/notifications/summary', [NotificationController::class, 'summary']);
     Route::post('/notifications/mark-read', [NotificationController::class, 'markRead']);

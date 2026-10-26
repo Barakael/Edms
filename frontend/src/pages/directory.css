@@ -1,48 +1,47 @@
-.users-page {
-  max-width: 960px;
+.directory-page {
+  width: 100%;
+  min-width: 0;
 }
 
-.users-header h1 {
+.directory-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.directory-header h1 {
   margin: 0;
   font-family: var(--font-display);
   color: var(--color-brand-dark);
 }
 
-.users-header {
-  margin-bottom: 1.25rem;
+.directory-header .btn {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
-.users-temp-pw {
+.directory-temp-pw {
   color: var(--color-success);
 }
 
-.users-create {
-  padding: 1rem;
-  margin-bottom: 1rem;
-}
-
-.users-create h3 {
-  margin: 0 0 0.75rem;
-}
-
-.users-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-  margin-bottom: 0.85rem;
-}
-
-.users-table-wrap {
+.directory-table-wrap {
   overflow: auto;
 }
 
-.users-actions {
+.directory-actions {
   display: flex;
   gap: 0.4rem;
   flex-wrap: wrap;
 }
 
-.users-edit-backdrop {
+.directory-empty {
+  text-align: center;
+  color: var(--color-gray-600);
+}
+
+.directory-backdrop {
   position: fixed;
   inset: 0;
   z-index: 60;
@@ -52,34 +51,44 @@
   padding: 1rem;
 }
 
-.users-edit-modal {
-  width: min(520px, 100%);
+.directory-modal {
+  width: min(640px, 100%);
+  max-height: min(90dvh, 760px);
+  overflow: auto;
   padding: 0;
-  overflow: hidden;
 }
 
-.users-edit-head {
+.directory-modal-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--color-gray-300);
   background: var(--color-gray-100);
+  position: sticky;
+  top: 0;
 }
 
-.users-edit-modal .users-grid {
+.directory-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
   padding: 1rem 1rem 0;
+}
+
+.directory-grid .field {
   margin-bottom: 0;
 }
 
-.users-active {
+.directory-active {
   display: flex;
   gap: 0.5rem;
   align-items: center;
   padding: 0.75rem 1rem;
 }
 
-.users-edit-actions {
+.directory-modal-actions {
   display: flex;
   gap: 0.5rem;
   padding: 0 1rem 1rem;
@@ -87,7 +96,7 @@
 }
 
 @media (max-width: 640px) {
-  .users-grid {
+  .directory-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -19,11 +19,14 @@ class RegistryUserController extends Controller
         $this->access->assertRegistrar($request->user());
 
         $users = User::query()
+            ->with('office:id,name')
             ->where('active', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'email', 'phone', 'role', 'active', 'created_at']);
+            ->get(['id', 'name', 'email', 'phone', 'role', 'active', 'office_id', 'created_at']);
 
-        return response()->json(['users' => $users]);
+        return response()->json([
+            'users' => $users->map(fn (User $user) => $this->present($user))->values(),
+        ]);
     }
 
     public function store(Request $request): JsonResponse
@@ -41,6 +44,7 @@ class RegistryUserController extends Controller
                 User::ROLE_MEMBER,
                 User::ROLE_ADMIN,
             ])],
+            'office_id' => ['required', 'integer', Rule::exists('offices', 'id')->where('active', true)],
             'password' => ['nullable', 'string', 'min:8'],
             'active' => ['sometimes', 'boolean'],
         ]);
@@ -52,13 +56,14 @@ class RegistryUserController extends Controller
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
             'role' => $data['role'],
+            'office_id' => $data['office_id'],
             'password' => Hash::make($tempPassword),
             'can_download' => false,
             'active' => $data['active'] ?? true,
         ]);
 
         return response()->json([
-            'user' => $user->only(['id', 'name', 'email', 'phone', 'role', 'active']),
+            'user' => $this->present($user),
             'temporary_password' => $data['password'] ?? $tempPassword,
         ], 201);
     }
@@ -78,19 +83,20 @@ class RegistryUserController extends Controller
                 User::ROLE_MEMBER,
                 User::ROLE_ADMIN,
             ])],
+            'office_id' => ['required', 'integer', Rule::exists('offices', 'id')->where('active', true)],
             'active' => ['sometimes', 'boolean'],
             'password' => ['nullable', 'string', 'min:8'],
         ]);
 
         if (! empty($data['password'])) {
             $user->password = Hash::make($data['password']);
-            unset($data['password']);
         }
+        unset($data['password']);
 
         $user->fill($data)->save();
 
         return response()->json([
-            'user' => $user->fresh()->only(['id', 'name', 'email', 'phone', 'role', 'active']),
+            'user' => $this->present($user->fresh()),
         ]);
     }
 
@@ -119,5 +125,22 @@ class RegistryUserController extends Controller
         ])->save();
 
         return response()->json(['message' => 'User deleted.']);
+    }
+
+    /** @return array<string, mixed> */
+    private function present(User $user): array
+    {
+        $user->loadMissing('office:id,name');
+
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'role' => $user->role,
+            'active' => (bool) $user->active,
+            'office_id' => $user->office_id,
+            'office' => $user->office?->only(['id', 'name']),
+        ];
     }
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
+import { ThemeToggle } from '../theme'
 import './AppShell.css'
 
 type NotifItem = {
@@ -118,6 +119,7 @@ export function AppShell() {
       <NavLink to="/queue">Registry queue</NavLink>
       <NavLink to="/register">Register</NavLink>
       <NavLink to="/email-drafts">Email drafts</NavLink>
+      <NavLink to="/branches">Branches</NavLink>
       <NavLink to="/departments">Departments</NavLink>
       <NavLink to="/users">Users</NavLink>
       <NavLink to="/search">Search</NavLink>
@@ -189,6 +191,7 @@ export function AppShell() {
               <div className="muted">{user?.role?.replaceAll('_', ' ')}</div>
             </div>
           </div>
+          <ThemeToggle />
           <button
             type="button"
             className="btn btn-secondary"

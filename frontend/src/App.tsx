@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { AppShell } from './components/AppShell'
 import { ToastProvider } from './components/Toast'
+import { BranchesPage } from './pages/BranchesPage'
 import { DepartmentsPage } from './pages/DepartmentsPage'
 import { DocumentDetailPage } from './pages/DocumentDetailPage'
 import { DownloadAccessPage } from './pages/DownloadAccessPage'
@@ -30,7 +31,7 @@ export default function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-      <Routes>
+        <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/sign-pad/:token" element={<SignPadPage />} />
         <Route
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="submit" element={<SubmitPage />} />
           <Route path="email-drafts" element={<EmailDraftsPage />} />
           <Route path="departments" element={<DepartmentsPage />} />
+          <Route path="branches" element={<BranchesPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="download-requests" element={<DownloadRequestsPage />} />
           <Route path="download-access" element={<DownloadAccessPage />} />
@@ -56,7 +58,7 @@ export default function App() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="documents/:id" element={<DocumentDetailPage />} />
         </Route>
-      </Routes>
+        </Routes>
       </ToastProvider>
     </AuthProvider>
   )

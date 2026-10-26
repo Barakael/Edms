@@ -1,11 +1,47 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
 
 :root {
+  --color-brand: #3b82f6;
+  --color-danger: #ef4444;
+
+  --font-ui: 'Outfit', system-ui, sans-serif;
+  --font-display: 'Outfit', system-ui, sans-serif;
+
+  --radius: 12px;
+  --glow-blue: 0 0 18px rgba(59, 130, 246, 0.45);
+  --glow-red: 0 0 16px rgba(239, 68, 68, 0.42);
+  --transition: 180ms ease;
+}
+
+:root,
+[data-theme='dark'] {
   color-scheme: dark;
 
-  --color-night: #070b14;
   --color-shell: #0a1220;
-  --color-brand: #3b82f6;
+  --shell-fg: #ffffff;
+  --shell-muted: rgba(255, 255, 255, 0.65);
+  --shell-nav: rgba(255, 255, 255, 0.78);
+  --shell-nav-hover: #ffffff;
+  --shell-nav-active: #ffffff;
+  --shell-wash: rgba(59, 130, 246, 0.16);
+  --shell-border: rgba(96, 165, 250, 0.22);
+  --shell-divider: rgba(255, 255, 255, 0.15);
+  --shell-nav-hover-bg: rgba(59, 130, 246, 0.12);
+  --shell-nav-active-bg: rgba(59, 130, 246, 0.2);
+  --shell-nav-active-glow: rgba(59, 130, 246, 0.12);
+  --shell-accent: #60a5fa;
+  --shell-accent-glow: #3b82f6;
+  --shell-btn-border: rgba(255, 255, 255, 0.35);
+  --shell-btn-hover-bg: rgba(59, 130, 246, 0.2);
+  --shell-btn-hover-border: rgba(96, 165, 250, 0.7);
+  --shell-mark-glow: rgba(59, 130, 246, 0.65);
+  --shell-inset: rgba(59, 130, 246, 0.08);
+  --shell-backdrop: rgba(4, 8, 16, 0.62);
+  --shell-drawer-shadow: 8px 0 24px rgba(0, 0, 0, 0.2);
+  --shell-nav-row-border: rgba(255, 255, 255, 0.08);
+  --bell-badge-ring: #0a1220;
+
+  --color-night: #070b14;
   --color-brand-bright: #60a5fa;
   --color-brand-dark: #dbeafe;
   --color-brand-light: rgba(59, 130, 246, 0.16);
@@ -15,17 +51,103 @@
   --color-gray-300: rgba(148, 176, 214, 0.24);
   --color-gray-100: #162338;
   --color-surface: #121c30;
-  --color-danger: #ef4444;
   --color-success: #60a5fa;
-
-  --font-ui: 'Outfit', system-ui, sans-serif;
-  --font-display: 'Outfit', system-ui, sans-serif;
-
-  --radius: 12px;
+  --color-input: #0c1424;
+  --color-option: #121c30;
+  --color-placeholder: #7d8fa6;
   --shadow-soft: 0 10px 28px rgba(0, 0, 0, 0.32);
-  --glow-blue: 0 0 18px rgba(59, 130, 246, 0.45);
-  --glow-red: 0 0 16px rgba(239, 68, 68, 0.42);
-  --transition: 180ms ease;
+  --wash-blue: rgba(59, 130, 246, 0.22);
+  --wash-red: rgba(239, 68, 68, 0.12);
+  --wash-blue-deep: rgba(37, 99, 235, 0.16);
+  --btn-secondary-bg: rgba(12, 20, 36, 0.55);
+  --btn-secondary-border: rgba(147, 197, 253, 0.28);
+  --panel-background: linear-gradient(180deg, rgba(22, 34, 56, 0.96), rgba(14, 22, 38, 0.96));
+  --panel-border: rgba(148, 176, 214, 0.18);
+  --panel-highlight: rgba(255, 255, 255, 0.04);
+  --table-line: rgba(148, 176, 214, 0.12);
+  --table-head-color: #b6c6dc;
+  --table-head-bg: rgba(8, 14, 26, 0.55);
+  --table-hover: rgba(59, 130, 246, 0.1);
+  --badge-bg: rgba(59, 130, 246, 0.16);
+  --badge-fg: #dbeafe;
+  --badge-border: rgba(96, 165, 250, 0.4);
+  --badge-closed-bg: rgba(59, 130, 246, 0.22);
+  --badge-closed-fg: #eff6ff;
+  --badge-closed-border: rgba(147, 197, 253, 0.55);
+  --badge-bank-bg: rgba(239, 68, 68, 0.16);
+  --badge-bank-fg: #fecaca;
+  --badge-bank-border: rgba(248, 113, 113, 0.65);
+  --error-fg: #fecaca;
+  --error-bg: rgba(239, 68, 68, 0.12);
+  --error-border: rgba(248, 113, 113, 0.5);
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  --color-shell: #f4f7fb;
+  --shell-fg: #0f172a;
+  --shell-muted: #64748b;
+  --shell-nav: #334155;
+  --shell-nav-hover: #0f172a;
+  --shell-nav-active: #1e3a8a;
+  --shell-wash: rgba(37, 99, 235, 0.1);
+  --shell-border: rgba(15, 23, 42, 0.1);
+  --shell-divider: rgba(15, 23, 42, 0.1);
+  --shell-nav-hover-bg: rgba(37, 99, 235, 0.08);
+  --shell-nav-active-bg: rgba(37, 99, 235, 0.12);
+  --shell-nav-active-glow: rgba(37, 99, 235, 0.08);
+  --shell-accent: #2563eb;
+  --shell-accent-glow: #3b82f6;
+  --shell-btn-border: rgba(15, 23, 42, 0.18);
+  --shell-btn-hover-bg: rgba(37, 99, 235, 0.1);
+  --shell-btn-hover-border: rgba(37, 99, 235, 0.45);
+  --shell-mark-glow: rgba(37, 99, 235, 0.35);
+  --shell-inset: rgba(37, 99, 235, 0.04);
+  --shell-backdrop: rgba(15, 23, 42, 0.35);
+  --shell-drawer-shadow: 8px 0 24px rgba(15, 23, 42, 0.12);
+  --shell-nav-row-border: rgba(15, 23, 42, 0.06);
+  --bell-badge-ring: #f4f7fb;
+
+  --color-night: #eef3f9;
+  --color-brand-bright: #1d4ed8;
+  --color-brand-dark: #1e3a8a;
+  --color-brand-light: rgba(37, 99, 235, 0.1);
+  --color-brand-mist: #eef3f9;
+  --color-gray-900: #0f172a;
+  --color-gray-600: #475569;
+  --color-gray-300: rgba(15, 23, 42, 0.14);
+  --color-gray-100: #e8eef6;
+  --color-surface: #ffffff;
+  --color-success: #1d4ed8;
+  --color-input: #ffffff;
+  --color-option: #ffffff;
+  --color-placeholder: #64748b;
+  --shadow-soft: 0 10px 28px rgba(15, 23, 42, 0.08);
+  --wash-blue: rgba(59, 130, 246, 0.14);
+  --wash-red: rgba(239, 68, 68, 0.06);
+  --wash-blue-deep: rgba(37, 99, 235, 0.08);
+  --btn-secondary-bg: #ffffff;
+  --btn-secondary-border: rgba(15, 23, 42, 0.16);
+  --panel-background: linear-gradient(180deg, #ffffff, #f8fafc);
+  --panel-border: rgba(15, 23, 42, 0.08);
+  --panel-highlight: rgba(255, 255, 255, 0.9);
+  --table-line: rgba(15, 23, 42, 0.08);
+  --table-head-color: #475569;
+  --table-head-bg: #f1f5f9;
+  --table-hover: rgba(37, 99, 235, 0.06);
+  --badge-bg: rgba(37, 99, 235, 0.1);
+  --badge-fg: #1e3a8a;
+  --badge-border: rgba(37, 99, 235, 0.28);
+  --badge-closed-bg: rgba(37, 99, 235, 0.14);
+  --badge-closed-fg: #1e3a8a;
+  --badge-closed-border: rgba(37, 99, 235, 0.35);
+  --badge-bank-bg: rgba(239, 68, 68, 0.1);
+  --badge-bank-fg: #991b1b;
+  --badge-bank-border: rgba(220, 38, 38, 0.35);
+  --error-fg: #991b1b;
+  --error-bg: rgba(239, 68, 68, 0.1);
+  --error-border: rgba(220, 38, 38, 0.35);
 }
 
 *,
@@ -49,9 +171,9 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   background:
-    radial-gradient(ellipse 55% 42% at 8% -10%, rgba(59, 130, 246, 0.22), transparent 58%),
-    radial-gradient(ellipse 42% 36% at 100% 0%, rgba(239, 68, 68, 0.12), transparent 52%),
-    radial-gradient(ellipse 50% 40% at 80% 110%, rgba(37, 99, 235, 0.16), transparent 55%),
+    radial-gradient(ellipse 55% 42% at 8% -10%, var(--wash-blue), transparent 58%),
+    radial-gradient(ellipse 42% 36% at 100% 0%, var(--wash-red), transparent 52%),
+    radial-gradient(ellipse 50% 40% at 80% 110%, var(--wash-blue-deep), transparent 55%),
     var(--color-night);
   background-size: 140% 140%;
   animation: night-drift 22s ease-in-out infinite;
@@ -134,8 +256,8 @@ h3 {
 }
 
 .btn-secondary {
-  background: rgba(12, 20, 36, 0.55);
-  border-color: rgba(147, 197, 253, 0.28);
+  background: var(--btn-secondary-bg);
+  border-color: var(--btn-secondary-border);
   color: var(--color-gray-900);
 }
 
@@ -179,7 +301,7 @@ textarea {
   border: 1px solid var(--color-gray-300);
   border-radius: 10px;
   padding: 0.58rem 0.75rem;
-  background: #0c1424;
+  background: var(--color-input);
   color: var(--color-gray-900);
   transition:
     border-color var(--transition),
@@ -204,17 +326,17 @@ input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
   -webkit-text-fill-color: var(--color-gray-900);
   caret-color: var(--color-gray-900);
-  box-shadow: 0 0 0 1000px #0c1424 inset;
+  box-shadow: 0 0 0 1000px var(--color-input) inset;
   transition: background-color 9999s ease-out;
 }
 
 select option {
-  background: #121c30;
+  background: var(--color-option);
   color: var(--color-gray-900);
 }
 
 ::placeholder {
-  color: #7d8fa6;
+  color: var(--color-placeholder);
 }
 
 .badge {
@@ -226,31 +348,31 @@ select option {
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: lowercase;
-  background: rgba(59, 130, 246, 0.16);
-  color: #dbeafe;
-  border: 1px solid rgba(96, 165, 250, 0.4);
+  background: var(--badge-bg);
+  color: var(--badge-fg);
+  border: 1px solid var(--badge-border);
 }
 
 .badge-closed {
-  background: rgba(59, 130, 246, 0.22);
-  color: #eff6ff;
-  border-color: rgba(147, 197, 253, 0.55);
+  background: var(--badge-closed-bg);
+  color: var(--badge-closed-fg);
+  border-color: var(--badge-closed-border);
 }
 
 .badge-bank {
-  background: rgba(239, 68, 68, 0.16);
-  color: #fecaca;
-  border-color: rgba(248, 113, 113, 0.65);
+  background: var(--badge-bank-bg);
+  color: var(--badge-bank-fg);
+  border-color: var(--badge-bank-border);
   box-shadow: var(--glow-red);
 }
 
 .panel {
-  background: linear-gradient(180deg, rgba(22, 34, 56, 0.96), rgba(14, 22, 38, 0.96));
-  border: 1px solid rgba(148, 176, 214, 0.18);
+  background: var(--panel-background);
+  border: 1px solid var(--panel-border);
   border-radius: var(--radius);
   box-shadow:
     var(--shadow-soft),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    inset 0 1px 0 var(--panel-highlight);
 }
 
 .table {
@@ -262,17 +384,17 @@ select option {
 .table td {
   text-align: left;
   padding: 0.8rem 0.95rem;
-  border-bottom: 1px solid rgba(148, 176, 214, 0.12);
+  border-bottom: 1px solid var(--table-line);
   font-size: 0.92rem;
 }
 
 .table th {
-  color: #b6c6dc;
+  color: var(--table-head-color);
   font-weight: 600;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  background: rgba(8, 14, 26, 0.55);
+  background: var(--table-head-bg);
 }
 
 .table tr {
@@ -281,7 +403,7 @@ select option {
 
 .table tbody tr:hover,
 .table tbody tr.is-selected {
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--table-hover);
 }
 
 .muted {
@@ -291,10 +413,10 @@ select option {
 
 .error-text {
   display: inline-block;
-  color: #fecaca;
+  color: var(--error-fg);
   font-size: 0.9rem;
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(248, 113, 113, 0.5);
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
   border-radius: 10px;
   padding: 0.5rem 0.75rem;
   box-shadow: 0 0 16px rgba(239, 68, 68, 0.16);

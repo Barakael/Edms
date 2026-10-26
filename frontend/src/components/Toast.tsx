@@ -51,7 +51,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export function useToast() {
+function useToast() {
   return useContext(ToastContext)
 }
 
