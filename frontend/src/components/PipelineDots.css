@@ -1,0 +1,102 @@
+.pipeline {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  padding: 0.5rem 0 0.25rem;
+}
+
+.pipeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 72px;
+  flex: 0 0 auto;
+}
+
+.pipeline-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  justify-content: center;
+  position: relative;
+  min-height: 28px;
+}
+
+.pipeline-line {
+  position: absolute;
+  right: 50%;
+  width: 100%;
+  height: 3px;
+  background: var(--color-gray-300);
+  z-index: 0;
+}
+
+.pipeline-line.state-done {
+  background: var(--color-success);
+}
+
+.pipeline-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--color-gray-300);
+  border: 2px solid var(--color-gray-300);
+}
+
+.pipeline-dot.state-pending {
+  background: transparent;
+  border-color: rgba(148, 176, 214, 0.4);
+  color: transparent;
+}
+
+.pipeline-dot.state-current {
+  background: #3b82f6;
+  border-color: #bfdbfe;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.85);
+  animation: dot-pulse 2.6s ease-in-out infinite;
+}
+
+.pipeline-dot.state-done {
+  background: #2563eb;
+  border-color: #60a5fa;
+}
+
+.pipeline-dot.state-overdue,
+.pipeline-dot.state-rejected,
+.pipeline-dot.state-critical,
+.pipeline-dot.state-blocked {
+  background: #ef4444;
+  border-color: #fecaca;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.75);
+}
+
+.pipeline-name {
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  text-align: center;
+  color: var(--color-gray-600);
+  max-width: 80px;
+  line-height: 1.2;
+}
+
+@keyframes dot-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(59, 130, 246, 0.95);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pipeline-dot.state-current {
+    animation: none;
+  }
+}
