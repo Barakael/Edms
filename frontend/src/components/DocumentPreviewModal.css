@@ -1,0 +1,194 @@
+.doc-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(10, 12, 16, 0.62);
+  backdrop-filter: blur(2px);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.doc-modal {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.doc-modal-head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.65rem 1.25rem;
+  border-bottom: 0;
+  background: linear-gradient(to bottom, rgba(8, 10, 14, 0.72), rgba(8, 10, 14, 0.2), transparent);
+  color: #f3f5f7;
+  pointer-events: none;
+}
+
+.doc-modal-head > * {
+  pointer-events: auto;
+}
+
+.doc-modal-head .muted {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.doc-modal-head .btn-secondary {
+  background: rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+
+.doc-modal-head .btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.doc-modal-actions {
+  position: absolute;
+  top: 3.35rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: center;
+  max-width: min(920px, calc(100% - 2rem));
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--radius);
+  background: rgba(8, 10, 14, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  pointer-events: auto;
+}
+
+.doc-modal-actions .btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+
+.doc-modal-actions .btn-primary {
+  box-shadow: none;
+}
+
+.doc-modal-error {
+  color: #ffb4a8;
+  font-size: 0.8rem;
+  max-width: 280px;
+}
+
+.doc-modal-body {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  background: transparent;
+}
+
+.doc-modal-body .viewer-in-modal {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.doc-modal-body .viewer-toolbar {
+  position: absolute;
+  top: 3.25rem;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #f3f5f7;
+  padding: 0.35rem 1.25rem;
+  pointer-events: none;
+}
+
+.doc-modal:has(.doc-modal-actions) .doc-modal-body .viewer-toolbar {
+  top: 6.35rem;
+}
+
+.doc-modal:has(.doc-modal-actions) .doc-modal-body .drag-sign-tray {
+  top: 8.5rem;
+}
+
+.doc-modal-body .viewer-toolbar > * {
+  pointer-events: auto;
+}
+
+.doc-modal-body .viewer-toolbar .muted {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.doc-modal-body .viewer-toolbar .btn-secondary {
+  background: rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+
+.doc-modal-body .drag-sign-tray {
+  position: absolute;
+  top: 5.5rem;
+  left: 1.25rem;
+  z-index: 4;
+  padding: 0.5rem 0.75rem;
+  color: #f3f5f7;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: var(--radius);
+}
+
+.doc-modal-body .viewer-stage {
+  flex: 1;
+  max-height: none;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  /* mt-5 ≈ 1.25rem — document starts near top and cuts under the navbar */
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.doc-modal-body .viewer-page {
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  background: #fff;
+}
+
+.doc-modal-body .viewer-canvas {
+  background: #fff;
+  /* width/height set in JS to match crisp DPR backing store */
+  max-width: min(1100px, 100%);
+}
+
+.doc-modal-body .viewer-image {
+  background: #fff;
+  width: auto;
+  max-width: min(1100px, 100%);
+  height: auto;
+  object-fit: contain;
+  object-position: top center;
+}
