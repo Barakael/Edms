@@ -1,0 +1,40 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: edms
+      MYSQL_USER: edms
+      MYSQL_PASSWORD: edms
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - edms_mysql:/var/lib/mysql
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_KEY: ${APP_KEY:-}
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: edms
+      DB_USERNAME: edms
+      DB_PASSWORD: edms
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      EDMS_EMAIL_INGEST_SECRET: local-ingest-secret
+    volumes:
+      - ./backend:/var/www/html
+      - edms_files:/var/www/html/storage/app/edms
+    depends_on:
+      - mysql
+
+volumes:
+  edms_mysql:
+  edms_files:
