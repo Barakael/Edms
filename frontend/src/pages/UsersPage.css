@@ -1,0 +1,93 @@
+.users-page {
+  max-width: 960px;
+}
+
+.users-header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  color: var(--color-brand-dark);
+}
+
+.users-header {
+  margin-bottom: 1.25rem;
+}
+
+.users-temp-pw {
+  color: var(--color-success);
+}
+
+.users-create {
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.users-create h3 {
+  margin: 0 0 0.75rem;
+}
+
+.users-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.users-table-wrap {
+  overflow: auto;
+}
+
+.users-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.users-edit-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(4, 8, 16, 0.72);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.users-edit-modal {
+  width: min(520px, 100%);
+  padding: 0;
+  overflow: hidden;
+}
+
+.users-edit-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-gray-300);
+  background: var(--color-gray-100);
+}
+
+.users-edit-modal .users-grid {
+  padding: 1rem 1rem 0;
+  margin-bottom: 0;
+}
+
+.users-active {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+}
+
+.users-edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1rem 1rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .users-grid {
+    grid-template-columns: 1fr;
+  }
+}
