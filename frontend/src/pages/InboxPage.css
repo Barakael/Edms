@@ -1,0 +1,14 @@
+.inbox-page header h1 {
+  font-size: clamp(1.6rem, 2.4vw, 2rem);
+  font-weight: 700;
+}
+
+.inbox-page header .muted {
+  margin: 0.3rem 0 0;
+}
+
+.table td.inbox-empty {
+  text-align: center;
+  padding: 2.75rem 1rem;
+  color: var(--color-gray-600);
+}
