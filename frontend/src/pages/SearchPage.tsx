@@ -1,50 +1,48 @@
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import { MailTable, type MailDoc } from '../components/MailTable'
 
 const FIELDS = [
+  { value: 'mail_type', label: 'Mail type' },
+  { value: 'sender_or_origin', label: 'Mail from' },
+  { value: 'mail_subject', label: 'Mail subject' },
+  { value: 'file_number', label: 'File no.' },
+  { value: 'received_date', label: 'Mail date' },
+  { value: 'folio_number', label: 'Mail folio no.' },
+  { value: 'mail_priority', label: 'Mail priority' },
+  { value: 'volume', label: 'Volume' },
   { value: 'reference_number', label: 'Reference number' },
-  { value: 'file_number', label: 'File number' },
-  { value: 'folio_number', label: 'Folio number' },
-  { value: 'mail_subject_type', label: 'Mail / subject type' },
-  { value: 'sender_or_origin', label: 'Sender / origin' },
-  { value: 'received_date', label: 'Received date' },
   { value: 'classification', label: 'Classification' },
   { value: 'department', label: 'Department name' },
-  { value: 'department_id', label: 'Department ID' },
 ]
 
-type Doc = {
-  id: number
-  status: string
-  registration?: Record<string, string>
-}
-
 export function SearchPage() {
-  const [field, setField] = useState('reference_number')
+  const [field, setField] = useState('file_number')
   const [q, setQ] = useState('')
-  const [docs, setDocs] = useState<Doc[]>([])
+  const [docs, setDocs] = useState<MailDoc[]>([])
   const [error, setError] = useState('')
+  const [searched, setSearched] = useState(false)
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError('')
     try {
       const params = new URLSearchParams({ field, q })
-      const res = await api<{ data: Doc[] }>(`/documents/search?${params}`)
+      const res = await api<{ data: MailDoc[] }>(`/documents/search?${params}`)
       setDocs(res.data || [])
+      setSearched(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Search failed')
     }
   }
 
   return (
-    <div>
+    <div className="inbox-page">
       <header style={{ marginBottom: '1.25rem' }}>
         <h1 style={{ margin: 0, fontFamily: 'var(--font-display)', color: 'var(--color-brand-dark)' }}>
-          Search
+          Trace mail movement
         </h1>
-        <p className="muted">Filter by any one registration field.</p>
+        <p className="muted">Find a document by the fields used to identify it.</p>
       </header>
       <form className="panel" style={{ padding: '1rem', marginBottom: '1rem' }} onSubmit={onSubmit}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '0.75rem' }}>
@@ -64,45 +62,13 @@ export function SearchPage() {
           </div>
           <div style={{ alignSelf: 'end' }}>
             <button className="btn btn-primary" type="submit">
-              Search
+              Trace
             </button>
           </div>
         </div>
       </form>
       {error && <p className="error-text">{error}</p>}
-      <div className="panel" style={{ overflow: 'auto' }}>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Reference</th>
-              <th>Status</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {docs.map((d) => (
-              <tr key={d.id}>
-                <td>{d.id}</td>
-                <td>{d.registration?.reference_number || '—'}</td>
-                <td>
-                  <span className="badge">{d.status}</span>
-                </td>
-                <td>
-                  <Link to={`/documents/${d.id}`}>Open</Link>
-                </td>
-              </tr>
-            ))}
-            {!docs.length && (
-              <tr>
-                <td colSpan={4} className="muted">
-                  No results.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {searched && <MailTable docs={docs} empty="No mail matches those details." />}
     </div>
   )
 }
