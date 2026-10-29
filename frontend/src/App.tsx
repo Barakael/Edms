@@ -2,12 +2,15 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { AppShell } from './components/AppShell'
 import { ToastProvider } from './components/Toast'
-import { BranchesPage } from './pages/BranchesPage'
+import { ArchivePage } from './pages/ArchivePage'
+import { RegionsPage } from './pages/RegionsPage'
 import { DepartmentsPage } from './pages/DepartmentsPage'
 import { DocumentDetailPage } from './pages/DocumentDetailPage'
 import { DownloadAccessPage } from './pages/DownloadAccessPage'
 import { DownloadRequestsPage } from './pages/DownloadRequestsPage'
 import { EmailDraftsPage } from './pages/EmailDraftsPage'
+import { FileDetailPage } from './pages/FileDetailPage'
+import { FilesPage } from './pages/FilesPage'
 import { InboxPage } from './pages/InboxPage'
 import { LoginPage } from './pages/LoginPage'
 import { NotificationsPage } from './pages/NotificationsPage'
@@ -17,6 +20,7 @@ import { SearchPage } from './pages/SearchPage'
 import { SignPadPage } from './pages/SignPadPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { SignaturePage } from './pages/SignaturePage'
+import { StationsPage } from './pages/StationsPage'
 import { SubmitPage } from './pages/SubmitPage'
 import { UsersPage } from './pages/UsersPage'
 
@@ -44,12 +48,17 @@ export default function App() {
         >
           <Route index element={<InboxPage />} />
           <Route path="queue" element={<QueuePage />} />
+          <Route path="archive" element={<ArchivePage />} />
+          <Route path="files" element={<FilesPage />} />
+          <Route path="files/:id" element={<FileDetailPage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="register" element={<RegisterPage />} />
           <Route path="submit" element={<SubmitPage />} />
           <Route path="email-drafts" element={<EmailDraftsPage />} />
           <Route path="departments" element={<DepartmentsPage />} />
-          <Route path="branches" element={<BranchesPage />} />
+          <Route path="regions" element={<RegionsPage />} />
+          <Route path="branches" element={<Navigate to="/regions" replace />} />
+          <Route path="stations" element={<StationsPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="download-requests" element={<DownloadRequestsPage />} />
           <Route path="download-access" element={<DownloadAccessPage />} />
