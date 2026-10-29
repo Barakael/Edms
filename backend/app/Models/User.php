@@ -18,13 +18,15 @@ class User extends Authenticatable implements JWTSubject
 
     public const ROLE_REGISTRAR = 'registrar';
 
-    public const ROLE_ACTION_OFFICER = 'action_officer';
+    public const ROLE_STAFF = 'staff';
 
-    public const ROLE_DIRECTOR = 'director';
+    public const ROLE_SENIOR_MANAGER = 'senior_manager';
+
+    public const ROLE_HOS = 'hos';
+
+    public const ROLE_HOD = 'hod';
 
     public const ROLE_ADMIN = 'admin';
-
-    public const ROLE_MEMBER = 'member';
 
     protected $fillable = [
         'name',
@@ -33,6 +35,8 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'role',
         'office_id',
+        'station_id',
+        'department_id',
         'active',
         'can_download',
         'signature_2fa_enabled',
@@ -78,14 +82,42 @@ class User extends Authenticatable implements JWTSubject
         return $this->role === self::ROLE_REGISTRAR || $this->role === self::ROLE_ADMIN;
     }
 
-    public function isDirector(): bool
+    public function isSeniorManager(): bool
     {
-        return $this->role === self::ROLE_DIRECTOR;
+        return $this->role === self::ROLE_SENIOR_MANAGER;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN;
+    }
+
+    /** @return list<string> */
+    public static function assignableRoles(): array
+    {
+        return [
+            self::ROLE_ADMIN,
+            self::ROLE_REGISTRAR,
+            self::ROLE_SENIOR_MANAGER,
+            self::ROLE_HOS,
+            self::ROLE_HOD,
+            self::ROLE_STAFF,
+        ];
     }
 
     public function office(): BelongsTo
     {
         return $this->belongsTo(Office::class);
+    }
+
+    public function station(): BelongsTo
+    {
+        return $this->belongsTo(Station::class);
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
     }
 
     public function activeSignature(): HasOne
