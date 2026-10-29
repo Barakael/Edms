@@ -34,6 +34,32 @@ class MailRoutingService
     }
 
     /**
+     * Head of Station who receives an internal memo from a station supervisor.
+     */
+    public function headOfStation(User $member): User
+    {
+        if (! $member->station_id) {
+            throw ValidationException::withMessages([
+                'station_id' => 'Your account is not linked to a station.',
+            ]);
+        }
+
+        $hos = $this->findHeadOfStation($member);
+        if (! $hos) {
+            throw ValidationException::withMessages([
+                'station_id' => 'No Head of Station is set for your station.',
+            ]);
+        }
+
+        return $hos;
+    }
+
+    public function findHeadOfStation(User $member): ?User
+    {
+        return $this->hosFor($member);
+    }
+
+    /**
      * Next desk when the current holder shares along the region hierarchy.
      *
      * @return array{box: string, user: ?User, office_id: ?int}
@@ -56,7 +82,7 @@ class MailRoutingService
             return ['box' => 'inbox', 'user' => $hos, 'office_id' => $hos->office_id];
         }
 
-        if ($sender->role === User::ROLE_HOD) {
+        if ($sender->role === User::ROLE_HOD || $sender->role === User::ROLE_STATION_SUPERVISOR) {
             $hos = $this->hosFor($sender);
             if (! $hos) {
                 throw ValidationException::withMessages([

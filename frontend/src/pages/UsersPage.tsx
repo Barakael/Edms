@@ -40,13 +40,15 @@ const emptyForm = {
 const roles = [
   { value: 'staff', label: 'Staff' },
   { value: 'hod', label: 'Head of Department' },
+  { value: 'station_supervisor', label: 'Station supervisor' },
   { value: 'hos', label: 'Head of Station' },
   { value: 'senior_manager', label: 'Senior manager' },
   { value: 'registrar', label: 'Registry' },
   { value: 'admin', label: 'Admin' },
 ]
 
-const needsStation = (role: string) => role === 'staff' || role === 'hod' || role === 'hos'
+const needsStation = (role: string) =>
+  role === 'staff' || role === 'hod' || role === 'hos' || role === 'station_supervisor'
 const needsDepartment = (role: string) => role === 'staff' || role === 'hod'
 
 export function UsersPage() {
@@ -195,7 +197,7 @@ export function UsersPage() {
   }
 
   async function onDelete(u: U) {
-    if (!confirm(`Delete user ${u.name}? They will be deactivated and cannot sign in.`)) return
+    if (!confirm(`Delete staff member ${u.name}? They will be deactivated and cannot sign in.`)) return
     setError('')
     try {
       await api(`/registry/users/${u.id}`, { method: 'DELETE' })
@@ -215,11 +217,11 @@ export function UsersPage() {
     <div className="directory-page">
       <header className="directory-header">
         <div>
-          <h1>Users</h1>
-          <p className="muted">Region, station, and department decide where shared mail goes.</p>
+          <h1>Staff</h1>
+          <p className="muted">Region, station, department, and role decide where shared mail goes.</p>
         </div>
         <button className="btn btn-primary" type="button" onClick={openCreate}>
-          Add new user
+          Add staff
         </button>
       </header>
       <StatusToast error={error} />
@@ -243,7 +245,7 @@ export function UsersPage() {
             {visible.length === 0 && (
               <tr>
                 <td className="directory-empty" colSpan={7}>
-                  No users yet.
+                  No staff yet.
                 </td>
               </tr>
             )}
@@ -278,7 +280,7 @@ export function UsersPage() {
         <div className="directory-backdrop" role="dialog" aria-modal="true">
           <form className="panel directory-modal" onSubmit={editing ? onSaveEdit : onCreate}>
             <header className="directory-modal-head">
-              <strong>{editing ? 'Edit user' : 'Add new user'}</strong>
+              <strong>{editing ? 'Edit staff' : 'Add staff'}</strong>
               <button type="button" className="btn btn-secondary" onClick={closeModal}>
                 Close
               </button>
@@ -411,11 +413,11 @@ export function UsersPage() {
             )}
             <div className="directory-modal-actions">
               <button className="btn btn-primary" type="submit" disabled={saving || regions.length === 0}>
-                {saving ? 'Saving…' : editing ? 'Save changes' : 'Create user'}
+                {saving ? 'Saving…' : editing ? 'Save changes' : 'Add staff'}
               </button>
               {editing && (
                 <button type="button" className="btn btn-danger" onClick={() => void onDelete(editing)}>
-                  Delete user
+                  Delete staff
                 </button>
               )}
             </div>

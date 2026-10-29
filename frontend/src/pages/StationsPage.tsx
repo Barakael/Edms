@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { api } from '../api/client'
+import { IconButton, PenIcon, TrashIcon } from '../components/ActionIcons'
 import { StatusToast } from '../components/Toast'
 import './directory.css'
 
@@ -131,20 +132,25 @@ export function StationsPage() {
                 <td>{station.name}</td>
                 <td>{station.office?.name || '—'}</td>
                 <td className="directory-actions">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
+                  <IconButton
+                    aria-label={`Edit ${station.name}`}
+                    title="Edit"
                     onClick={() => {
                       setEditing(station)
                       setCreating(false)
                       setForm({ name: station.name, office_id: station.office_id })
                     }}
                   >
-                    Edit
-                  </button>
-                  <button type="button" className="btn btn-danger" onClick={() => void onDelete(station)}>
-                    Delete
-                  </button>
+                    <PenIcon />
+                  </IconButton>
+                  <IconButton
+                    tone="danger"
+                    aria-label={`Delete ${station.name}`}
+                    title="Delete"
+                    onClick={() => void onDelete(station)}
+                  >
+                    <TrashIcon />
+                  </IconButton>
                 </td>
               </tr>
             ))}

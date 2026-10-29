@@ -166,6 +166,19 @@ class DocumentController extends Controller
             $data['department_id'] = $user->department_id;
         }
 
+        if ($user->role === User::ROLE_STATION_SUPERVISOR) {
+            $hasComment = filled($data['comment'] ?? null);
+            $hasFiles = $request->hasFile('files');
+            if (! $hasComment && ! $hasFiles) {
+                throw ValidationException::withMessages([
+                    'comment' => 'Add a comment or attach a file for this internal memo.',
+                ]);
+            }
+            if (empty($data['mail_type'])) {
+                $data['mail_type'] = 'MEMO';
+            }
+        }
+
         $deptName = null;
         $officeId = $data['office_id'] ?? $user->office_id;
         if (! empty($data['department_id'])) {
@@ -180,6 +193,12 @@ class DocumentController extends Controller
 
         if ($user->role === User::ROLE_STAFF) {
             $assignee = $this->routing->headOfDepartment($user);
+            $status = Document::STATUS_IN_CIRCULATION;
+            $box = Document::BOX_INBOX;
+            $awaiting = false;
+            $officeId = $assignee->office_id ?: $officeId;
+        } elseif ($user->role === User::ROLE_STATION_SUPERVISOR) {
+            $assignee = $this->routing->headOfStation($user);
             $status = Document::STATUS_IN_CIRCULATION;
             $box = Document::BOX_INBOX;
             $awaiting = false;
@@ -238,14 +257,19 @@ class DocumentController extends Controller
 
             $this->storeFiles($document, $request);
 
+            $directAssign = in_array($user->role, [User::ROLE_STAFF, User::ROLE_STATION_SUPERVISOR], true);
             WorkflowEvent::query()->create([
                 'document_id' => $document->id,
                 'from_user_id' => $user->id,
-                'to_user_id' => $user->role === User::ROLE_STAFF ? $assignee?->id : null,
-                'action' => $user->role === User::ROLE_STAFF
+                'to_user_id' => $directAssign ? $assignee?->id : null,
+                'action' => $directAssign
                     ? 'assign'
                     : ($status === Document::STATUS_PENDING_REGISTRY ? 'member_submit' : 'create'),
-                'payload' => ['status' => $document->status, 'box' => $document->box],
+                'payload' => [
+                    'status' => $document->status,
+                    'box' => $document->box,
+                    'mail_type' => $data['mail_type'] ?? null,
+                ],
                 'created_at' => now(),
             ]);
 
@@ -472,7 +496,7 @@ class DocumentController extends Controller
         }
 
         $isPush = (int) $document->current_assignee_id === (int) $user->id;
-        $hierarchy = in_array($user->role, [User::ROLE_STAFF, User::ROLE_HOD, User::ROLE_HOS], true);
+        $hierarchy = in_array($user->role, [User::ROLE_STAFF, User::ROLE_HOD, User::ROLE_HOS, User::ROLE_STATION_SUPERVISOR], true);
 
         if ($user->isRegistrar()) {
             $data = $request->validate([

@@ -26,6 +26,8 @@ class User extends Authenticatable implements JWTSubject
 
     public const ROLE_HOD = 'hod';
 
+    public const ROLE_STATION_SUPERVISOR = 'station_supervisor';
+
     public const ROLE_ADMIN = 'admin';
 
     protected $fillable = [
@@ -95,13 +97,74 @@ class User extends Authenticatable implements JWTSubject
     /** @return list<string> */
     public static function assignableRoles(): array
     {
+        $values = Role::query()->orderBy('id')->pluck('value')->all();
+        if ($values !== []) {
+            return $values;
+        }
+
+        return array_column(self::fallbackRoleCatalog(), 'value');
+    }
+
+    /**
+     * Roles available for administration and assignment.
+     *
+     * @return list<array{value: string, label: string, description: string}>
+     */
+    public static function roleCatalog(): array
+    {
+        $rows = Role::query()->orderBy('id')->get(['value', 'label', 'description']);
+        if ($rows->isNotEmpty()) {
+            return $rows->map(static fn (Role $role) => [
+                'value' => $role->value,
+                'label' => $role->label,
+                'description' => $role->description ?? '',
+            ])->all();
+        }
+
+        return self::fallbackRoleCatalog();
+    }
+
+    /**
+     * @return list<array{value: string, label: string, description: string}>
+     */
+    private static function fallbackRoleCatalog(): array
+    {
         return [
-            self::ROLE_ADMIN,
-            self::ROLE_REGISTRAR,
-            self::ROLE_SENIOR_MANAGER,
-            self::ROLE_HOS,
-            self::ROLE_HOD,
-            self::ROLE_STAFF,
+            [
+                'value' => self::ROLE_ADMIN,
+                'label' => 'System admin',
+                'description' => 'Full system access, including administration.',
+            ],
+            [
+                'value' => self::ROLE_REGISTRAR,
+                'label' => 'Registry',
+                'description' => 'Registers mail, manages files, and routes work.',
+            ],
+            [
+                'value' => self::ROLE_SENIOR_MANAGER,
+                'label' => 'Senior manager',
+                'description' => 'Sees Preview Box and archives for the region.',
+            ],
+            [
+                'value' => self::ROLE_HOS,
+                'label' => 'Head of station',
+                'description' => 'Receives station mail and shares into Preview Box.',
+            ],
+            [
+                'value' => self::ROLE_STATION_SUPERVISOR,
+                'label' => 'Station supervisor',
+                'description' => 'Sends internal memos to the Head of Station.',
+            ],
+            [
+                'value' => self::ROLE_HOD,
+                'label' => 'Head of department',
+                'description' => 'Receives department staff mail and shares to Head of Station.',
+            ],
+            [
+                'value' => self::ROLE_STAFF,
+                'label' => 'Staff',
+                'description' => 'Submits mail to their Head of Department.',
+            ],
         ];
     }
 

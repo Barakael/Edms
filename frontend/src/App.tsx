@@ -22,6 +22,7 @@ import { SettingsPage } from './pages/SettingsPage'
 import { SignaturePage } from './pages/SignaturePage'
 import { StationsPage } from './pages/StationsPage'
 import { SubmitPage } from './pages/SubmitPage'
+import { RolesPage } from './pages/RolesPage'
 import { UsersPage } from './pages/UsersPage'
 
 function Protected({ children }: { children: React.ReactNode }) {
@@ -59,7 +60,9 @@ export default function App() {
           <Route path="regions" element={<RegionsPage />} />
           <Route path="branches" element={<Navigate to="/regions" replace />} />
           <Route path="stations" element={<StationsPage />} />
-          <Route path="users" element={<UsersPage />} />
+          <Route path="staff" element={<UsersPage />} />
+          <Route path="users" element={<Navigate to="/staff" replace />} />
+          <Route path="roles" element={<RolesPage />} />
           <Route path="download-requests" element={<DownloadRequestsPage />} />
           <Route path="download-access" element={<DownloadAccessPage />} />
           <Route path="notifications" element={<NotificationsPage />} />

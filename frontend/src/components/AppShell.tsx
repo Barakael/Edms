@@ -18,7 +18,9 @@ const CRUMBS: Record<string, string> = {
   '/regions': 'Regions',
   '/stations': 'Stations',
   '/departments': 'Departments',
-  '/users': 'Users',
+  '/staff': 'Staff',
+  '/users': 'Staff',
+  '/roles': 'Roles',
   '/notifications': 'Notifications',
   '/settings': 'Settings',
   '/signature': 'Signature',
@@ -31,6 +33,7 @@ const ROLE_LABEL: Record<string, string> = {
   registrar: 'Registry',
   senior_manager: 'Senior manager',
   hos: 'Head of station',
+  station_supervisor: 'Station supervisor',
   hod: 'Head of department',
   staff: 'Staff',
 }
@@ -164,14 +167,19 @@ export function AppShell() {
       <NavLink to="/archive">5.0 Archives</NavLink>
       <NavLink to="/files">6.0 Files</NavLink>
       <NavLink to="/search">7.0 Trace mail movement</NavLink>
-      {!isRegistry && <NavLink to="/submit">8.0 Submit document</NavLink>}
+      {!isRegistry && (
+        <NavLink to="/submit">
+          {user?.role === 'station_supervisor' ? '8.0 Internal memo' : '8.0 Submit document'}
+        </NavLink>
+      )}
       {isRegistry && (
         <>
           <div className="shell-nav-box">8.0 Administration</div>
           <NavLink to="/regions">Regions</NavLink>
           <NavLink to="/stations">Stations</NavLink>
           <NavLink to="/departments">Departments</NavLink>
-          <NavLink to="/users">Users</NavLink>
+          <NavLink to="/staff">Staff</NavLink>
+          <NavLink to="/roles">Roles</NavLink>
         </>
       )}
       <NavLink to="/notifications">9.0 Notifications</NavLink>

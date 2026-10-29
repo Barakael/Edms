@@ -79,7 +79,11 @@ export function DocumentDetailPage() {
   const isAssignee = user && doc && user.id === doc.current_assignee_id
   const isRegistry = user?.role === 'registrar' || user?.role === 'admin'
   const isSenior = user?.role === 'senior_manager'
-  const sharesUp = user?.role === 'staff' || user?.role === 'hod' || user?.role === 'hos'
+  const sharesUp =
+    user?.role === 'staff' ||
+    user?.role === 'hod' ||
+    user?.role === 'hos' ||
+    user?.role === 'station_supervisor'
   const archived = doc?.box === 'archive' || doc?.status === 'closed'
   const locked = Boolean(doc?.locked_at)
   const canDownload = Boolean(data?.can_download)
@@ -701,7 +705,7 @@ export function DocumentDetailPage() {
               <p className="muted">
                 {user?.role === 'hos'
                   ? 'This mail goes to your region Preview Box.'
-                  : user?.role === 'hod'
+                  : user?.role === 'hod' || user?.role === 'station_supervisor'
                     ? 'This mail goes to your Head of Station inbox.'
                     : 'This mail goes to your Head of Department, or Head of Station if there is no HoD.'}
               </p>

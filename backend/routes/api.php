@@ -11,6 +11,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\RegistryFileController;
 use App\Http\Controllers\RegistryUserController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SignatureController;
 use App\Http\Controllers\StationController;
 use App\Http\Controllers\UserDirectoryController;
@@ -37,6 +38,9 @@ Route::middleware(['auth:api', 'jwt.version', 'throttle:120,1'])->group(function
     Route::put('/registry/users/{user}', [RegistryUserController::class, 'update']);
     Route::delete('/registry/users/{user}', [RegistryUserController::class, 'destroy']);
     Route::post('/registry/users/{user}/signature', [SignatureController::class, 'assignForUser']);
+    Route::get('/roles', [RoleController::class, 'index']);
+    Route::put('/roles/{role}', [RoleController::class, 'update']);
+    Route::delete('/roles/{role}', [RoleController::class, 'destroy']);
 
     Route::get('/offices', [DepartmentController::class, 'offices']);
     Route::post('/offices', [DepartmentController::class, 'storeOffice']);

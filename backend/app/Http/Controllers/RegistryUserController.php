@@ -166,7 +166,7 @@ class RegistryUserController extends Controller
     private function placement(array $data): array
     {
         $role = $data['role'];
-        $needsStation = in_array($role, [User::ROLE_STAFF, User::ROLE_HOS, User::ROLE_HOD], true);
+        $needsStation = in_array($role, [User::ROLE_STAFF, User::ROLE_HOS, User::ROLE_HOD, User::ROLE_STATION_SUPERVISOR], true);
         $needsDepartment = in_array($role, [User::ROLE_STAFF, User::ROLE_HOD], true);
 
         $stationId = $data['station_id'] ?? null;
@@ -196,7 +196,7 @@ class RegistryUserController extends Controller
             }
         }
 
-        if ($role === User::ROLE_HOS) {
+        if ($role === User::ROLE_HOS || $role === User::ROLE_STATION_SUPERVISOR) {
             $departmentId = null;
         }
 
