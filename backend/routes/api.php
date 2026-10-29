@@ -9,8 +9,10 @@ use App\Http\Controllers\EmailDraftController;
 use App\Http\Controllers\EmailIngestController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OtpController;
+use App\Http\Controllers\RegistryFileController;
 use App\Http\Controllers\RegistryUserController;
 use App\Http\Controllers\SignatureController;
+use App\Http\Controllers\StationController;
 use App\Http\Controllers\UserDirectoryController;
 use Illuminate\Support\Facades\Route;
 
@@ -34,6 +36,7 @@ Route::middleware(['auth:api', 'jwt.version', 'throttle:120,1'])->group(function
     Route::post('/registry/users', [RegistryUserController::class, 'store']);
     Route::put('/registry/users/{user}', [RegistryUserController::class, 'update']);
     Route::delete('/registry/users/{user}', [RegistryUserController::class, 'destroy']);
+    Route::post('/registry/users/{user}/signature', [SignatureController::class, 'assignForUser']);
 
     Route::get('/offices', [DepartmentController::class, 'offices']);
     Route::post('/offices', [DepartmentController::class, 'storeOffice']);
@@ -43,6 +46,10 @@ Route::middleware(['auth:api', 'jwt.version', 'throttle:120,1'])->group(function
     Route::post('/departments', [DepartmentController::class, 'store']);
     Route::put('/departments/{department}', [DepartmentController::class, 'update']);
     Route::delete('/departments/{department}', [DepartmentController::class, 'destroy']);
+    Route::get('/stations', [StationController::class, 'index']);
+    Route::post('/stations', [StationController::class, 'store']);
+    Route::put('/stations/{station}', [StationController::class, 'update']);
+    Route::delete('/stations/{station}', [StationController::class, 'destroy']);
 
     Route::get('/notifications/summary', [NotificationController::class, 'summary']);
     Route::post('/notifications/mark-read', [NotificationController::class, 'markRead']);
@@ -55,13 +62,24 @@ Route::middleware(['auth:api', 'jwt.version', 'throttle:120,1'])->group(function
     Route::post('/otp/sign/request', [OtpController::class, 'requestSign'])->middleware('throttle:10,1');
     Route::post('/otp/sign/verify', [OtpController::class, 'verifySign'])->middleware('throttle:20,1');
 
+    Route::get('/registry-files', [RegistryFileController::class, 'index']);
+    Route::post('/registry-files', [RegistryFileController::class, 'store']);
+    Route::get('/registry-files/{registryFile}', [RegistryFileController::class, 'show']);
+    Route::put('/registry-files/{registryFile}', [RegistryFileController::class, 'update']);
+    Route::delete('/registry-files/{registryFile}', [RegistryFileController::class, 'destroy']);
+    Route::post('/registry-files/{registryFile}/archive', [RegistryFileController::class, 'archive']);
+    Route::post('/registry-files/{registryFile}/retrieve', [RegistryFileController::class, 'retrieve']);
+
     Route::get('/documents/inbox', [DocumentController::class, 'inbox']);
     Route::get('/documents/search', [DocumentController::class, 'search']);
     Route::post('/documents', [DocumentController::class, 'store']);
+    Route::get('/documents/{document}/comments/pdf', [DocumentController::class, 'commentsPdf']);
     Route::get('/documents/{document}', [DocumentController::class, 'show']);
     Route::put('/documents/{document}', [DocumentController::class, 'update']);
     Route::delete('/documents/{document}', [DocumentController::class, 'destroy']);
     Route::post('/documents/{document}/assign', [DocumentController::class, 'assign']);
+    Route::post('/documents/{document}/lock', [DocumentController::class, 'lock']);
+    Route::post('/documents/{document}/unlock', [DocumentController::class, 'unlock']);
     Route::post('/documents/{document}/download-permission', [DocumentController::class, 'setDownloadPermission']);
     Route::post('/documents/{document}/comments', [DocumentController::class, 'comment']);
     Route::post('/documents/{document}/close', [DocumentController::class, 'close']);
