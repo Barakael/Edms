@@ -1,0 +1,182 @@
+.register-page {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.register-header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  color: var(--color-brand-dark);
+  font-size: clamp(1.45rem, 2vw, 1.75rem);
+  line-height: 1.2;
+}
+
+.register-header .muted {
+  margin: 0.25rem 0 0;
+  font-size: 0.95rem;
+}
+
+.register-form {
+  padding: 1.15rem 1.25rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.register-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(260px, 0.85fr);
+  gap: 1.25rem 1.5rem;
+  align-items: start;
+}
+
+.register-section h2 {
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-gray-600);
+}
+
+.register-fields {
+  display: grid;
+  gap: 0.8rem 1rem;
+}
+
+.register-fields.two {
+  grid-template-columns: 1fr 1fr;
+}
+
+.register-fields .field,
+.register-file-grid .field {
+  margin-bottom: 0;
+  min-width: 0;
+  gap: 0.35rem;
+}
+
+.register-form .field label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--color-gray-900);
+}
+
+.register-form input:not([type='checkbox']):not([type='radio']):not([type='file']),
+.register-form select {
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.55rem 0.75rem;
+  font-size: 1rem;
+  border-radius: 10px;
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+.register-routing {
+  background: var(--color-gray-100);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 0.9rem 1rem 1rem;
+}
+
+.register-file {
+  padding-top: 0.15rem;
+  border-top: 1px solid var(--panel-border);
+}
+
+.register-file-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem 1rem;
+  align-items: end;
+}
+
+.register-form .file-picker {
+  display: contents;
+}
+
+.register-attach {
+  grid-column: 4;
+  grid-row: 1;
+}
+
+.register-form .file-picker-region {
+  grid-column: 1 / 4;
+}
+
+.register-form .file-picker .error-text,
+.register-form .file-picker .muted {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.register-form input[type='file'] {
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.95rem;
+  border: 1px solid var(--color-gray-300);
+  border-radius: 10px;
+  background: var(--color-input);
+}
+
+.register-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.15rem;
+}
+
+.register-actions .error-text {
+  margin: 0;
+  margin-right: auto;
+}
+
+.register-actions .btn {
+  min-height: 2.65rem;
+  padding: 0.6rem 1.25rem;
+  font-size: 1rem;
+}
+
+@media (max-width: 980px) {
+  .register-columns,
+  .register-file-grid,
+  .register-fields.two {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .register-attach,
+  .register-form .file-picker-region,
+  .span-2 {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .register-form {
+    padding: 1rem;
+  }
+
+  .register-columns,
+  .register-file-grid,
+  .register-fields.two {
+    grid-template-columns: 1fr;
+  }
+
+  .register-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .register-actions .error-text {
+    margin-right: 0;
+  }
+}
