@@ -12,12 +12,7 @@ class UserDirectoryController extends Controller
     {
         $users = User::query()
             ->where('active', true)
-            ->whereIn('role', [
-                User::ROLE_ACTION_OFFICER,
-                User::ROLE_DIRECTOR,
-                User::ROLE_REGISTRAR,
-                User::ROLE_MEMBER,
-            ])
+            ->whereIn('role', User::assignableRoles())
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'phone', 'role']);
 
