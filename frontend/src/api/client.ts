@@ -7,6 +7,9 @@ export type User = {
   email: string
   phone?: string | null
   role: string
+  department_id?: number | null
+  department_name?: string | null
+  hod_name?: string | null
   can_download?: boolean
   signature_2fa_enabled?: boolean
   has_signature?: boolean
