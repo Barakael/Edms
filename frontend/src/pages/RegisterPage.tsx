@@ -1,18 +1,26 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAccessToken, api } from '../api/client'
+import { FilePicker } from '../components/FilePicker'
+import './RegisterPage.css'
 
-type Dept = { id: number; name: string }
+type Dept = { id: number; name: string; station?: { name: string } | null }
+type Person = { id: number; name: string; role: string }
 
 export function RegisterPage() {
   const navigate = useNavigate()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [departments, setDepartments] = useState<Dept[]>([])
+  const [people, setPeople] = useState<Person[]>([])
+  const [destination, setDestination] = useState<'inbox' | 'archive'>('inbox')
 
   useEffect(() => {
     api<{ departments: Dept[] }>('/departments')
       .then((r) => setDepartments(r.departments || []))
+      .catch(() => undefined)
+    api<{ users: Person[] }>('/users/assignees')
+      .then((r) => setPeople(r.users || []))
       .catch(() => undefined)
   }, [])
 
@@ -22,6 +30,7 @@ export function RegisterPage() {
     setError('')
     const form = e.currentTarget
     const fd = new FormData(form)
+    fd.set('destination', destination)
     try {
       const res = await fetch('/api/documents', {
         method: 'POST',
@@ -42,65 +51,130 @@ export function RegisterPage() {
   }
 
   return (
-    <div>
-      <header style={{ marginBottom: '1.25rem' }}>
-        <h1 style={{ margin: 0, fontFamily: 'var(--font-display)', color: 'var(--color-brand-dark)' }}>
-          Register document
-        </h1>
-        <p className="muted">Registrar enrollment with department from managed list.</p>
+    <div className="register-page">
+      <header className="register-header">
+        <div>
+          <h1>Register Mail</h1>
+          <p className="muted">Record the mail, choose where it goes, then attach the scan.</p>
+        </div>
       </header>
-      <form className="panel" style={{ padding: '1.25rem', maxWidth: 720 }} onSubmit={onSubmit}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem 1rem' }}>
-          {(
-            [
-              ['mail_subject_type', 'Mail / subject type'],
-              ['reference_number', 'Reference number'],
-              ['file_number', 'File number'],
-              ['folio_number', 'Folio number'],
-              ['sender_or_origin', 'Sender / origin'],
-              ['received_date', 'Received date', 'date'],
-              ['classification', 'Classification'],
-            ] as const
-          ).map(([name, label, type]) => (
-            <div className="field" key={name}>
-              <label htmlFor={name}>{label}</label>
-              <input id={name} name={name} type={type || 'text'} />
+
+      <form className="panel register-form" onSubmit={onSubmit}>
+        <div className="register-columns">
+          <section className="register-section">
+            <h2>Mail</h2>
+            <div className="register-fields two">
+              <div className="field span-2">
+                <label htmlFor="mail_subject">Mail subject</label>
+                <input id="mail_subject" name="mail_subject" required />
+              </div>
+              <div className="field">
+                <label htmlFor="mail_type">Mail type</label>
+                <input id="mail_type" name="mail_type" placeholder="LETTER, INVOICE, …" />
+              </div>
+              <div className="field">
+                <label htmlFor="received_date">Mail date</label>
+                <input id="received_date" name="received_date" type="date" />
+              </div>
+              <div className="field span-2">
+                <label htmlFor="sender_or_origin">Mail from</label>
+                <input id="sender_or_origin" name="sender_or_origin" />
+              </div>
+              <div className="field">
+                <label htmlFor="folio_number">Folio no.</label>
+                <input id="folio_number" name="folio_number" />
+              </div>
+              <div className="field">
+                <label htmlFor="mail_priority">Priority</label>
+                <select id="mail_priority" name="mail_priority" defaultValue="normal">
+                  <option value="normal">Normal</option>
+                  <option value="urgent">Urgent</option>
+                  <option value="very_urgent">Very urgent</option>
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="volume">Volume</label>
+                <input id="volume" name="volume" />
+              </div>
+              <div className="field">
+                <label htmlFor="reference_number">Reference number</label>
+                <input id="reference_number" name="reference_number" />
+              </div>
+              <div className="field">
+                <label htmlFor="classification">Classification</label>
+                <input id="classification" name="classification" />
+              </div>
             </div>
-          ))}
-          <div className="field">
-            <label htmlFor="department_id">Department</label>
-            <select id="department_id" name="department_id" defaultValue="">
-              <option value="">Select…</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label htmlFor="sensitivity">Sensitivity</label>
-            <select id="sensitivity" name="sensitivity" defaultValue="normal">
-              <option value="normal">Normal</option>
-              <option value="bank_sensitive">Bank sensitive</option>
-            </select>
-          </div>
-          <div className="field">
-            <label htmlFor="status">Status</label>
-            <select id="status" name="status" defaultValue="registered">
-              <option value="draft">Draft</option>
-              <option value="registered">Registered</option>
-            </select>
-          </div>
+          </section>
+
+          <section className="register-section register-routing">
+            <h2>Routing</h2>
+            <div className="register-fields">
+              <div className="field">
+                <label htmlFor="department_id">Department</label>
+                <select id="department_id" name="department_id" defaultValue="">
+                  <option value="">Select…</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.station?.name ? `${d.name} · ${d.station.name}` : d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="sensitivity">Sensitivity</label>
+                <select id="sensitivity" name="sensitivity" defaultValue="normal">
+                  <option value="normal">Normal</option>
+                  <option value="sensitive">Sensitive</option>
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="destination">Destination</label>
+                <select
+                  id="destination"
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value as 'inbox' | 'archive')}
+                >
+                  <option value="inbox">Inbox for processing</option>
+                  <option value="archive">Straight to archive</option>
+                </select>
+              </div>
+              {destination === 'inbox' && (
+                <div className="field">
+                  <label htmlFor="assignee_id">Inbox of</label>
+                  <select id="assignee_id" name="assignee_id" required defaultValue="">
+                    <option value="" disabled>
+                      Select person
+                    </option>
+                    {people.map((person) => (
+                      <option key={person.id} value={person.id}>
+                        {person.name} ({person.role.replaceAll('_', ' ')})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          </section>
         </div>
-        <div className="field">
-          <label htmlFor="files">Files (PDF / images)</label>
-          <input id="files" name="files[]" type="file" multiple accept="application/pdf,image/*" />
+
+        <section className="register-section register-file">
+          <h2>File</h2>
+          <div className="register-file-grid">
+            <FilePicker />
+            <div className="field register-attach">
+              <label htmlFor="files">Attach file</label>
+              <input id="files" name="files[]" type="file" multiple accept="application/pdf,image/*" />
+            </div>
+          </div>
+        </section>
+
+        <div className="register-actions">
+          {error && <p className="error-text">{error}</p>}
+          <button className="btn btn-primary" type="submit" disabled={busy}>
+            {busy ? 'Saving…' : destination === 'archive' ? 'Register into archive' : 'Register into inbox'}
+          </button>
         </div>
-        {error && <p className="error-text">{error}</p>}
-        <button className="btn btn-primary" type="submit" disabled={busy}>
-          {busy ? 'Saving…' : 'Save document'}
-        </button>
       </form>
     </div>
   )
