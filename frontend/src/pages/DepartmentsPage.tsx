@@ -1,22 +1,25 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { api } from '../api/client'
+import { IconButton, PenIcon, TrashIcon } from '../components/ActionIcons'
 import { StatusToast } from '../components/Toast'
 import './directory.css'
 
-type Branch = { id: number; name: string }
+type Station = { id: number; name: string; office?: { name: string } }
 type Dept = {
   id: number
   name: string
   active: boolean
   office_id: number
-  office?: Branch
+  station_id?: number | null
+  office?: { name: string }
+  station?: { name: string }
 }
 
-const emptyForm = { name: '', office_id: '' as number | '' }
+const emptyForm = { name: '', station_id: '' as number | '' }
 
 export function DepartmentsPage() {
   const [departments, setDepartments] = useState<Dept[]>([])
-  const [branches, setBranches] = useState<Branch[]>([])
+  const [stations, setStations] = useState<Station[]>([])
   const [form, setForm] = useState(emptyForm)
   const [editing, setEditing] = useState<Dept | null>(null)
   const [creating, setCreating] = useState(false)
@@ -24,31 +27,17 @@ export function DepartmentsPage() {
   const [saving, setSaving] = useState(false)
 
   async function load() {
-    const [deptRes, officeRes] = await Promise.all([
+    const [deptRes, stationRes] = await Promise.all([
       api<{ departments: Dept[] }>('/departments'),
-      api<{ offices: Branch[] }>('/offices'),
+      api<{ stations: Station[] }>('/stations'),
     ])
     setDepartments(deptRes.departments || [])
-    setBranches(officeRes.offices || [])
+    setStations(stationRes.stations || [])
   }
 
   useEffect(() => {
     void load().catch((e) => setError(e.message))
   }, [])
-
-  function openCreate() {
-    setCreating(true)
-    setEditing(null)
-    setForm(emptyForm)
-    setError('')
-  }
-
-  function openEdit(dept: Dept) {
-    setEditing(dept)
-    setCreating(false)
-    setForm({ name: dept.name, office_id: dept.office_id })
-    setError('')
-  }
 
   function closeModal() {
     setCreating(false)
@@ -57,13 +46,13 @@ export function DepartmentsPage() {
 
   async function onCreate(e: FormEvent) {
     e.preventDefault()
-    if (!form.office_id) return
+    if (!form.station_id) return
     setSaving(true)
     setError('')
     try {
       await api('/departments', {
         method: 'POST',
-        body: JSON.stringify({ office_id: form.office_id, name: form.name }),
+        body: JSON.stringify({ station_id: form.station_id, name: form.name }),
       })
       setForm(emptyForm)
       setCreating(false)
@@ -77,13 +66,13 @@ export function DepartmentsPage() {
 
   async function onSaveEdit(e: FormEvent) {
     e.preventDefault()
-    if (!editing || !form.office_id) return
+    if (!editing || !form.station_id) return
     setSaving(true)
     setError('')
     try {
       await api(`/departments/${editing.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ name: form.name, office_id: form.office_id }),
+        body: JSON.stringify({ name: form.name, station_id: form.station_id }),
       })
       setEditing(null)
       await load()
@@ -113,9 +102,18 @@ export function DepartmentsPage() {
       <header className="directory-header">
         <div>
           <h1>Departments</h1>
-          <p className="muted">Managed list per branch — used when registering documents.</p>
+          <p className="muted">Each department sits in a station. Its head reports to that station’s Head of Station.</p>
         </div>
-        <button className="btn btn-primary" type="button" onClick={openCreate}>
+        <button
+          className="btn btn-primary"
+          type="button"
+          onClick={() => {
+            setCreating(true)
+            setEditing(null)
+            setForm(emptyForm)
+            setError('')
+          }}
+        >
           Add department
         </button>
       </header>
@@ -127,14 +125,15 @@ export function DepartmentsPage() {
           <thead>
             <tr>
               <th>Name</th>
-              <th>Branch</th>
+              <th>Station</th>
+              <th>Region</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {departments.length === 0 && (
               <tr>
-                <td className="directory-empty" colSpan={3}>
+                <td className="directory-empty" colSpan={4}>
                   No departments yet.
                 </td>
               </tr>
@@ -142,14 +141,29 @@ export function DepartmentsPage() {
             {departments.map((dept) => (
               <tr key={dept.id}>
                 <td>{dept.name}</td>
+                <td>{dept.station?.name || '—'}</td>
                 <td>{dept.office?.name || '—'}</td>
                 <td className="directory-actions">
-                  <button type="button" className="btn btn-secondary" onClick={() => openEdit(dept)}>
-                    Edit
-                  </button>
-                  <button type="button" className="btn btn-danger" onClick={() => void onDelete(dept)}>
-                    Delete
-                  </button>
+                  <IconButton
+                    aria-label={`Edit ${dept.name}`}
+                    title="Edit"
+                    onClick={() => {
+                      setEditing(dept)
+                      setCreating(false)
+                      setForm({ name: dept.name, station_id: dept.station_id ?? '' })
+                      setError('')
+                    }}
+                  >
+                    <PenIcon />
+                  </IconButton>
+                  <IconButton
+                    tone="danger"
+                    aria-label={`Delete ${dept.name}`}
+                    title="Delete"
+                    onClick={() => void onDelete(dept)}
+                  >
+                    <TrashIcon />
+                  </IconButton>
                 </td>
               </tr>
             ))}
@@ -182,26 +196,27 @@ export function DepartmentsPage() {
                 />
               </div>
               <div className="field">
-                <label htmlFor="dept-branch">Branch</label>
+                <label htmlFor="dept-station">Station</label>
                 <select
-                  id="dept-branch"
-                  value={form.office_id}
-                  onChange={(e) => setForm({ ...form, office_id: Number(e.target.value) })}
+                  id="dept-station"
+                  value={form.station_id}
+                  onChange={(e) => setForm({ ...form, station_id: Number(e.target.value) })}
                   required
                 >
                   <option value="" disabled>
-                    Select branch
+                    Select station
                   </option>
-                  {branches.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.name}
+                  {stations.map((station) => (
+                    <option key={station.id} value={station.id}>
+                      {station.name}
+                      {station.office?.name ? ` · ${station.office.name}` : ''}
                     </option>
                   ))}
                 </select>
               </div>
             </div>
             <div className="directory-modal-actions">
-              <button className="btn btn-primary" type="submit" disabled={saving || branches.length === 0}>
+              <button className="btn btn-primary" type="submit" disabled={saving || stations.length === 0}>
                 {saving ? 'Saving…' : editing ? 'Save changes' : 'Add department'}
               </button>
               {editing && (
