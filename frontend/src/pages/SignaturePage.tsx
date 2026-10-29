@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { IPhoneCaptureAdapter } from '../signatures/IPhoneCaptureAdapter'
@@ -13,7 +14,7 @@ import './SignaturePage.css'
 export function SignaturePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const adapterRef = useRef<SignatureCaptureSource | null>(null)
-  const { refreshMe } = useAuth()
+  const { user, refreshMe } = useAuth()
   const [source, setSource] = useState<CaptureSourceId>('pointer')
   const [iphoneUrl, setIphoneUrl] = useState<string | null>(null)
   const [iphoneInk, setIphoneInk] = useState<string | null>(null)
@@ -140,10 +141,12 @@ export function SignaturePage() {
     : null
   const linkStillLocal = Boolean(iphoneUrl && isLoopbackOrigin(iphoneUrl))
 
+  if (user && user.role !== 'admin') return <Navigate to="/" replace />
+
   return (
     <div className="sig-page">
       <header className="sig-page-header">
-        <h1>Your signature</h1>
+        <h1>Register a signature</h1>
         <p className="muted">
           Capture once, place on documents later. Sources share one interface — USB pad, iPhone, or
           mouse/trackpad.
