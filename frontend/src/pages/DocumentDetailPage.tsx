@@ -1,5 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { useParams } from 'react-router-dom'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import { api, fetchAuthorizedBlob } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { DocumentPreviewModal } from '../components/DocumentPreviewModal'
@@ -12,6 +12,8 @@ type DocDetail = {
   document: {
     id: number
     status: string
+    box?: string
+    locked_at?: string | null
     sensitivity: string
     current_assignee_id: number | null
     assignee_can_download?: boolean
@@ -19,8 +21,15 @@ type DocDetail = {
     registration?: Record<string, string | null> & {
       department_relation?: { name: string }
     }
+    registry_file?: { id: number; number: string; name: string; status: string } | null
     files: Array<{ id: number; original_filename: string; mime: string; sort_order: number }>
-    comments: Array<{ id: number; body: string; created_at: string; user?: { name: string } }>
+    comments: Array<{
+      id: number
+      body: string
+      created_at: string
+      user?: { name: string }
+      attachments?: Array<{ id: number; original_filename: string }>
+    }>
     workflow_events: Array<{
       id: number
       action: string
@@ -54,6 +63,8 @@ export function DocumentDetailPage() {
   const [assignees, setAssignees] = useState<Assignee[]>([])
   const [assigneeId, setAssigneeId] = useState('')
   const [comment, setComment] = useState('')
+  const [commentFile, setCommentFile] = useState<File | null>(null)
+  const commentFileRef = useRef<HTMLInputElement>(null)
   const [placeMode, setPlaceMode] = useState(false)
   const [dragSign, setDragSign] = useState(false)
   const [otpOpen, setOtpOpen] = useState(false)
@@ -66,8 +77,11 @@ export function DocumentDetailPage() {
 
   const doc = data?.document
   const isAssignee = user && doc && user.id === doc.current_assignee_id
-  const isRegistrar = user?.role === 'registrar' || user?.role === 'admin'
-  const isDirector = user?.role === 'director' || user?.role === 'admin'
+  const isRegistry = user?.role === 'registrar' || user?.role === 'admin'
+  const isSenior = user?.role === 'senior_manager'
+  const sharesUp = user?.role === 'staff' || user?.role === 'hod' || user?.role === 'hos'
+  const archived = doc?.box === 'archive' || doc?.status === 'closed'
+  const locked = Boolean(doc?.locked_at)
   const canDownload = Boolean(data?.can_download)
   const assigneeCanDownload = Boolean(
     data?.assignee_can_download ?? doc?.assignee_can_download,
@@ -98,7 +112,7 @@ export function DocumentDetailPage() {
     try {
       await api(`/documents/${id}/assign`, {
         method: 'POST',
-        body: JSON.stringify({ assignee_id: Number(assigneeId) }),
+        body: JSON.stringify(isRegistry ? { assignee_id: Number(assigneeId) } : {}),
       })
       await load()
     } catch (err) {
@@ -106,14 +120,50 @@ export function DocumentDetailPage() {
     }
   }
 
+  async function shareUp() {
+    setError('')
+    try {
+      await api(`/documents/${id}/assign`, { method: 'POST', body: JSON.stringify({}) })
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Share failed')
+    }
+  }
+
+  async function setLock(lock: boolean) {
+    setError('')
+    try {
+      await api(`/documents/${id}/${lock ? 'lock' : 'unlock'}`, { method: 'POST' })
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update lock')
+    }
+  }
+
+  async function downloadComments() {
+    try {
+      const blob = await fetchAuthorizedBlob(`/documents/${id}/comments/pdf`)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `comments-${id}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not download comments')
+    }
+  }
+
   async function submitComment(e: FormEvent) {
     e.preventDefault()
     try {
-      await api(`/documents/${id}/comments`, {
-        method: 'POST',
-        body: JSON.stringify({ body: comment }),
-      })
+      const fd = new FormData()
+      fd.set('body', comment)
+      if (commentFile) fd.set('attachment', commentFile)
+      await api(`/documents/${id}/comments`, { method: 'POST', body: fd })
       setComment('')
+      setCommentFile(null)
+      if (commentFileRef.current) commentFileRef.current.value = ''
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Comment failed')
@@ -325,7 +375,7 @@ export function DocumentDetailPage() {
         {error ? <p className="error-text">{error}</p> : <p className="muted">Loading…</p>}
         {error?.toLowerCase().includes('step-up') && (
           <form className="panel" style={{ padding: '1rem', maxWidth: 420 }} onSubmit={stepUp}>
-            <p className="muted">Re-enter password to open bank-sensitive content.</p>
+            <p className="muted">Re-enter password to open sensitive content.</p>
             <div className="field">
               <label htmlFor="stepup">Password</label>
               <input
@@ -384,13 +434,11 @@ export function DocumentDetailPage() {
           canDownload={canDownload}
           onDownload={() => void downloadFile()}
           onPlace={onPlace}
-          editablePlacements={Boolean(
-            (isAssignee || isRegistrar) && doc.status !== 'closed',
-          )}
+          editablePlacements={Boolean((isAssignee || isRegistry) && !archived)}
           onMovePlacement={(pid, coords) => void movePlacement(pid, coords)}
           onDeletePlacement={(pid) => void deletePlacement(pid)}
           actions={
-            isAssignee && doc.status === 'in_circulation' ? (
+            isAssignee && doc.box === 'inbox' && !locked ? (
               <>
                 <button type="button" className="btn btn-secondary" onClick={() => beginSign('click')}>
                   Place signature
@@ -398,11 +446,6 @@ export function DocumentDetailPage() {
                 <button type="button" className="btn btn-secondary" onClick={() => beginSign('drag')}>
                   Drag signature
                 </button>
-                {isDirector && (
-                  <button type="button" className="btn btn-primary" onClick={() => void closeDoc()}>
-                    Close document
-                  </button>
-                )}
                 {error && <span className="doc-modal-error">{error}</span>}
                 {placeMode && <span className="badge">Click the page to place</span>}
                 {dragSign && <span className="badge">Drag signature onto the page</span>}
@@ -420,12 +463,16 @@ export function DocumentDetailPage() {
           <h1>{doc.registration?.reference_number || `Document #${doc.id}`}</h1>
           <p className="muted doc-disclaimer">{data?.disclaimer}</p>
           <div className="doc-badges">
-            <span className="badge">{doc.status}</span>
-            {doc.sensitivity === 'bank_sensitive' && <span className="badge badge-bank">bank</span>}
+            <span className="badge">{doc.box === 'preview' ? 'Preview Box' : doc.box === 'archive' ? 'Archives' : 'Inbox'}</span>
+            <span className="badge">{doc.status.replaceAll('_', ' ')}</span>
+            {locked && <span className="badge badge-sensitive">locked</span>}
+            {(doc.sensitivity === 'sensitive' || doc.sensitivity === 'bank_sensitive') && (
+              <span className="badge badge-sensitive">sensitive</span>
+            )}
           </div>
         </div>
         <div className="doc-open-actions">
-          {doc.status !== 'in_circulation' && doc.files.length > 1 && (
+          {doc.files.length > 1 && (
             <select
               className="doc-file-select"
               value={fileId ?? ''}
@@ -439,25 +486,14 @@ export function DocumentDetailPage() {
               ))}
             </select>
           )}
-          {doc.status !== 'in_circulation' ? (
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={!activeFile}
-              onClick={() => setPreviewOpen(true)}
-            >
-              Open document
-            </button>
-          ) : isAssignee ? (
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={!activeFile}
-              onClick={() => setPreviewOpen(true)}
-            >
-              Open to act
-            </button>
-          ) : null}
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={!activeFile}
+            onClick={() => setPreviewOpen(true)}
+          >
+            {isAssignee && doc.box === 'inbox' ?'View document' : 'Open'}
+          </button>
         </div>
       </header>
 
@@ -467,7 +503,7 @@ export function DocumentDetailPage() {
       <div className="doc-page-grid">
         <section className="doc-page-main">
           <div className="panel doc-pipeline-panel">
-            <h3>Pipeline</h3>
+            <h3>Mail movement</h3>
             <PipelineDots steps={data?.pipeline || []} />
           </div>
 
@@ -480,29 +516,93 @@ export function DocumentDetailPage() {
                 emptyText="No comments yet."
                 getKey={(c) => c.id}
                 renderItem={(c) => (
-                  <>
-                    <strong>{c.user?.name}</strong>
-                    <div className="muted">{new Date(c.created_at).toLocaleString()}</div>
-                    <div>{c.body}</div>
-                  </>
+                  <div className="doc-comment-item">
+                    <strong className="doc-comment-author">{c.user?.name}</strong>
+                    <div className="doc-comment-body">{c.body}</div>
+                    {c.attachments?.map((file) => (
+                      <div key={file.id} className="doc-comment-attachment">
+                        Attachment: {file.original_filename}
+                      </div>
+                    ))}
+                    <div className="doc-comment-time">
+                      {new Date(c.created_at).toLocaleString()}
+                    </div>
+                  </div>
                 )}
               />
-              {(isAssignee || isRegistrar || (user && doc.status === 'pending_registry')) && (
-                <form className="panel doc-comment-compose" onSubmit={submitComment}>
-                  <h3>Add comment</h3>
-                  <div className="field">
-                    <label htmlFor="comment">Note</label>
-                    <textarea
+              <button type="button" className="doc-comments-pdf" onClick={() => void downloadComments()}>
+                Download comments PDF
+              </button>
+              {(isAssignee || isRegistry || isSenior || doc.box === 'preview' || doc.box === 'archive') && (
+                <form className="doc-comment-bar" onSubmit={submitComment}>
+                  <input
+                    ref={commentFileRef}
+                    id="comment-file"
+                    type="file"
+                    accept="application/pdf,image/png,image/jpeg,image/webp"
+                    hidden
+                    onChange={(e) => setCommentFile(e.target.files?.[0] || null)}
+                  />
+                  {commentFile && (
+                    <div className="doc-comment-chip">
+                      <span>{commentFile.name}</span>
+                      <button
+                        type="button"
+                        aria-label="Remove attachment"
+                        onClick={() => {
+                          setCommentFile(null)
+                          if (commentFileRef.current) commentFileRef.current.value = ''
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+                  <div className="doc-comment-row">
+                    <button
+                      type="button"
+                      className={`doc-comment-attach${commentFile ? ' has-file' : ''}`}
+                      aria-label="Attach a file"
+                      onClick={() => commentFileRef.current?.click()}
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.82-2.83l8.49-8.48"
+                        />
+                      </svg>
+                    </button>
+                    <input
                       id="comment"
+                      className="doc-comment-input"
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
+                      placeholder="Write a comment"
+                      aria-label="Comment"
                       required
-                      rows={2}
                     />
+                    <button
+                      className="doc-comment-send"
+                      type="submit"
+                      aria-label="Send comment"
+                      disabled={!comment.trim()}
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M5 12h14M13 6l6 6-6 6"
+                        />
+                      </svg>
+                    </button>
                   </div>
-                  <button className="btn btn-primary" type="submit">
-                    Post
-                  </button>
                 </form>
               )}
             </div>
@@ -528,10 +628,25 @@ export function DocumentDetailPage() {
             <h3>Registration</h3>
             <dl className="doc-reg-list">
               <div>
+                <strong>file</strong>
+                <span>
+                  {doc.registry_file ? (
+                    <Link to={`/files/${doc.registry_file.id}`}>
+                      {doc.registry_file.number} — {doc.registry_file.name}
+                    </Link>
+                  ) : (
+                    doc.registration?.file_number || '—'
+                  )}
+                </span>
+              </div>
+              <div>
                 <strong>department</strong>
                 <span>{deptLabel}</span>
               </div>
-              {regEntries.slice(0, 5).map(([k, v]) => (
+              {regEntries
+                .filter(([k]) => k !== 'file_number')
+                .slice(0, 5)
+                .map(([k, v]) => (
                 <div key={k}>
                   <strong>{k.replace(/_/g, ' ')}</strong>
                   <span>{typeof v === 'object' && v !== null ? '—' : String(v ?? '—')}</span>
@@ -540,7 +655,7 @@ export function DocumentDetailPage() {
             </dl>
           </div>
 
-          {isRegistrar && (
+          {isRegistry && (
             <div className="panel doc-aside-panel">
               <h3>Download permission</h3>
               <label className="doc-download-grant">
@@ -555,17 +670,11 @@ export function DocumentDetailPage() {
             </div>
           )}
 
-          {(isRegistrar || isAssignee) && doc.status !== 'closed' && (
+          {isRegistry && !archived && (
             <form className="panel doc-aside-panel" onSubmit={assign}>
-              <h3>
-                {doc.awaiting_registry || doc.status === 'pending_registry'
-                  ? 'Distribute'
-                  : doc.current_assignee_id
-                    ? 'Push next'
-                    : 'Assign'}
-              </h3>
+              <h3>Assign to inbox</h3>
               <div className="field">
-                <label htmlFor="assignee">Assignee</label>
+                <label htmlFor="assignee">Person</label>
                 <select
                   id="assignee"
                   value={assigneeId}
@@ -575,18 +684,46 @@ export function DocumentDetailPage() {
                   <option value="">Select…</option>
                   {assignees.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.name} ({a.role})
+                      {a.name} ({a.role.replaceAll('_', ' ')})
                     </option>
                   ))}
                 </select>
               </div>
-              <button className="btn btn-primary" type="submit">
-                {doc.current_assignee_id ? 'Push' : 'Assign'}
+              <button className="btn btn-primary" type="submit" disabled={locked}>
+                Assign
               </button>
             </form>
           )}
 
-          {isRegistrar && (
+          {isAssignee && sharesUp && !archived && (
+            <div className="panel doc-aside-panel">
+              <h3>Share</h3>
+              <p className="muted">
+                {user?.role === 'hos'
+                  ? 'This mail goes to your region Preview Box.'
+                  : user?.role === 'hod'
+                    ? 'This mail goes to your Head of Station inbox.'
+                    : 'This mail goes to your Head of Department, or Head of Station if there is no HoD.'}
+              </p>
+              <button className="btn btn-primary" type="button" disabled={locked} onClick={() => void shareUp()}>
+                Share
+              </button>
+            </div>
+          )}
+
+          {(isAssignee || isRegistry || isSenior) && !archived && (
+            <button type="button" className="btn btn-primary" onClick={() => void closeDoc()}>
+              Move to archive
+            </button>
+          )}
+
+          {isRegistry && (
+            <button type="button" className="btn btn-secondary" onClick={() => void setLock(!locked)}>
+              {locked ? 'Unlock' : 'Lock'}
+            </button>
+          )}
+
+          {isRegistry && (
             <button type="button" className="btn btn-danger" onClick={() => void softDelete()}>
               Soft-delete
             </button>
