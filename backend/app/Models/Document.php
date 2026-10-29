@@ -24,23 +24,37 @@ class Document extends Model
 
     public const SENSITIVITY_NORMAL = 'normal';
 
-    public const SENSITIVITY_BANK = 'bank_sensitive';
+    public const SENSITIVITY_SENSITIVE = 'sensitive';
+
+    /** @deprecated Use SENSITIVITY_SENSITIVE */
+    public const SENSITIVITY_BANK = 'sensitive';
+
+    public const BOX_PREVIEW = 'preview';
+
+    public const BOX_INBOX = 'inbox';
+
+    public const BOX_ARCHIVE = 'archive';
 
     protected $fillable = [
         'status',
+        'box',
         'sensitivity',
         'created_by',
+        'office_id',
+        'registry_file_id',
         'submitted_by',
         'awaiting_registry',
         'current_assignee_id',
         'assignee_can_download',
         'closed_at',
+        'locked_at',
     ];
 
     protected function casts(): array
     {
         return [
             'closed_at' => 'datetime',
+            'locked_at' => 'datetime',
             'awaiting_registry' => 'boolean',
             'assignee_can_download' => 'boolean',
         ];
@@ -84,6 +98,16 @@ class Document extends Model
     public function currentAssignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'current_assignee_id');
+    }
+
+    public function office(): BelongsTo
+    {
+        return $this->belongsTo(Office::class);
+    }
+
+    public function registryFile(): BelongsTo
+    {
+        return $this->belongsTo(RegistryFile::class);
     }
 
     public function routeSteps(): HasMany
