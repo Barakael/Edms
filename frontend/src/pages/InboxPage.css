@@ -7,8 +7,68 @@
   margin: 0.3rem 0 0;
 }
 
-.table td.inbox-empty {
+.inbox-empty {
   text-align: center;
   padding: 2.75rem 1rem;
   color: var(--color-gray-600);
+  margin: 0;
+}
+
+.mail-wrap {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border-radius: 4px;
+}
+
+.mail-scroll {
+  overflow: auto;
+  min-height: 0;
+}
+
+.mail-table {
+  min-width: 920px;
+  margin: 0;
+}
+
+.mail-table thead th {
+  background: #0f6f86;
+  color: #f8fafc;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  border-bottom: 0;
+}
+
+.mail-table tbody tr:nth-child(even) {
+  background: rgba(15, 111, 134, 0.04);
+}
+
+.mail-table td {
+  font-size: 0.82rem;
+  white-space: nowrap;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+
+.mail-table .mail-subject {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mail-priority {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.mail-priority.priority-urgent {
+  color: #b45309;
+}
+
+.mail-priority.priority-very_urgent {
+  color: #b91c1c;
 }
