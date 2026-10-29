@@ -65,7 +65,7 @@ Deploy only patched PHP (**≥ 8.4.27** or **≥ 8.5.12**). The API Dockerfile p
 
 ## Features covered
 
-- JWT auth, refresh rotation, session revoke, step-up for bank-sensitive docs
+- JWT auth, refresh rotation, session revoke, step-up for sensitive docs
 - Registrar enrollment, multi-file bundles, soft-delete / metadata update
 - Assignee-only inbox & content ACL, assign/push, comments, append-only history + audit logs
 - In-app preview (no download), 4-corner reader watermark
