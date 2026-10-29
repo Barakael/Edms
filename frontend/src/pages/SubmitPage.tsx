@@ -1,20 +1,25 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, getAccessToken } from '../api/client'
+import { useAuth } from '../auth/AuthContext'
+import { FilePicker } from '../components/FilePicker'
 
 type Dept = { id: number; name: string }
 
 export function SubmitPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const isStaff = user?.role === 'staff'
   const [departments, setDepartments] = useState<Dept[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
+    if (isStaff) return
     api<{ departments: Dept[] }>('/departments')
       .then((r) => setDepartments(r.departments || []))
       .catch(() => undefined)
-  }, [])
+  }, [isStaff])
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -32,7 +37,11 @@ export function SubmitPage() {
         body: fd,
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Submit failed')
+      if (!res.ok) {
+        const fieldError = data.errors && Object.values(data.errors)[0]
+        const detail = Array.isArray(fieldError) ? fieldError[0] : null
+        throw new Error(detail || data.message || 'Submit failed')
+      }
       navigate(`/documents/${data.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed')
@@ -47,32 +56,46 @@ export function SubmitPage() {
         <h1 style={{ margin: 0, fontFamily: 'var(--font-display)', color: 'var(--color-brand-dark)' }}>
           Submit document
         </h1>
-        <p className="muted">Sends to registry queue for distribution. Add an optional comment.</p>
+        <p className="muted">
+          {isStaff
+            ? user?.hod_name
+              ? `This mail goes straight to ${user.hod_name}, Head of Department${user.department_name ? ` for ${user.department_name}` : ''}.`
+              : 'This mail goes straight to your Head of Department. Your account needs a department and a Head of Department before it can be sent.'
+            : 'Mail with no designated desk goes to the Preview Box for registry and senior managers.'}
+        </p>
       </header>
       <form className="panel" style={{ padding: '1.25rem', maxWidth: 720 }} onSubmit={onSubmit}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem 1rem' }}>
           <div className="field">
-            <label htmlFor="mail_subject_type">Subject / type</label>
-            <input id="mail_subject_type" name="mail_subject_type" required />
+            <label htmlFor="mail_subject">Mail subject</label>
+            <input id="mail_subject" name="mail_subject" required />
           </div>
           <div className="field">
-            <label htmlFor="sender_or_origin">Sender / origin</label>
+            <label htmlFor="sender_or_origin">Mail from</label>
             <input id="sender_or_origin" name="sender_or_origin" />
           </div>
-          <div className="field">
-            <label htmlFor="department_id">Department</label>
-            <select id="department_id" name="department_id" defaultValue="">
-              <option value="">Select…</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {isStaff ? (
+            <div className="field">
+              <label>Department</label>
+              <input value={user?.department_name || 'Not assigned'} readOnly />
+            </div>
+          ) : (
+            <div className="field">
+              <label htmlFor="department_id">Department</label>
+              <select id="department_id" name="department_id" defaultValue="">
+                <option value="">Select…</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
+        <FilePicker />
         <div className="field">
-          <label htmlFor="comment">Comment for registry</label>
+          <label htmlFor="comment">{isStaff ? 'Comment' : 'Comment for registry'}</label>
           <textarea id="comment" name="comment" rows={3} />
         </div>
         <div className="field">
@@ -80,8 +103,8 @@ export function SubmitPage() {
           <input id="files" name="files[]" type="file" multiple accept="application/pdf,image/*" required />
         </div>
         {error && <p className="error-text">{error}</p>}
-        <button className="btn btn-primary" type="submit" disabled={busy}>
-          {busy ? 'Submitting…' : 'Submit to registry'}
+        <button className="btn btn-primary" type="submit" disabled={busy || (isStaff && !user?.hod_name)}>
+          {busy ? 'Submitting…' : isStaff ? 'Send to Head of Department' : 'Send to Preview Box'}
         </button>
       </form>
     </div>
