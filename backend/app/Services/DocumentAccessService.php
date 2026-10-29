@@ -25,21 +25,56 @@ class DocumentAccessService
             return true;
         }
 
-        // Submitter may view their own pending_registry items
-        if (
-            $document->status === Document::STATUS_PENDING_REGISTRY
-            && (int) $document->submitted_by === (int) $user->id
-        ) {
+        if ((int) $document->created_by === (int) $user->id || (int) $document->submitted_by === (int) $user->id) {
+            return true;
+        }
+
+        if ($document->box === Document::BOX_PREVIEW && $this->seesBranchBox($user, $document)) {
+            return true;
+        }
+
+        if ($document->box === Document::BOX_ARCHIVE && ($this->involved($user, $document) || $this->seesBranchBox($user, $document))) {
             return true;
         }
 
         return false;
     }
 
+    public function seesBranchBox(User $user, Document $document): bool
+    {
+        if (! $user->isSeniorManager()) {
+            return false;
+        }
+
+        return $document->office_id === null || (int) $document->office_id === (int) $user->office_id;
+    }
+
+    public function involved(User $user, Document $document): bool
+    {
+        if ((int) $document->created_by === (int) $user->id) {
+            return true;
+        }
+        if ((int) $document->submitted_by === (int) $user->id) {
+            return true;
+        }
+        if ((int) $document->current_assignee_id === (int) $user->id) {
+            return true;
+        }
+        if ($document->routeSteps()->where('user_id', $user->id)->exists()) {
+            return true;
+        }
+
+        return $document->workflowEvents()
+            ->where(function ($q) use ($user) {
+                $q->where('from_user_id', $user->id)->orWhere('to_user_id', $user->id);
+            })
+            ->exists();
+    }
+
     public function assertCanViewContent(User $user, Document $document, ?Request $request = null): void
     {
         if ($this->canViewContent($user, $document)) {
-            if ($document->sensitivity === Document::SENSITIVITY_BANK) {
+            if (in_array($document->sensitivity, [Document::SENSITIVITY_SENSITIVE, 'bank_sensitive'], true)) {
                 $this->assertStepUp($user, $document, $request);
             }
 
@@ -105,18 +140,7 @@ class DocumentAccessService
 
     public function assertCanComment(User $user, Document $document): void
     {
-        if ($user->isRegistrar()) {
-            return;
-        }
-
-        if ((int) $document->current_assignee_id === (int) $user->id) {
-            return;
-        }
-
-        if (
-            $document->status === Document::STATUS_PENDING_REGISTRY
-            && (int) $document->submitted_by === (int) $user->id
-        ) {
+        if ($this->canViewContent($user, $document)) {
             return;
         }
 
@@ -138,6 +162,6 @@ class DocumentAccessService
             'reason' => 'step_up_required',
         ], $request);
 
-        throw new AccessDeniedHttpException('Step-up verification required for bank-sensitive documents.');
+        throw new AccessDeniedHttpException('Step-up verification required for sensitive documents.');
     }
 }
