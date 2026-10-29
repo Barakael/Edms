@@ -7,9 +7,12 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "barryvdh/laravel-dompdf": "^3.1",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
-        "php-open-source-saver/jwt-auth": "^2.9"
+        "php-open-source-saver/jwt-auth": "^2.9",
+        "setasign/fpdf": "^1.9",
+        "setasign/fpdi": "^2.6"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
