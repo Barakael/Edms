@@ -1,0 +1,45 @@
+.table-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  min-height: 36px;
+  padding: 0.35rem 0.75rem;
+  background: #0f6f86;
+  color: #f8fafc;
+  font-size: 0.82rem;
+}
+
+.table-pager-range {
+  font-weight: 600;
+}
+
+.table-pager-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.table-pager-nav button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.15rem 0.25rem;
+}
+
+.table-pager-nav button:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.table-pager-nav button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.table-pager-nav span {
+  opacity: 0.7;
+}
