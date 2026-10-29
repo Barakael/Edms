@@ -3,7 +3,43 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { api } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { ThemeToggle } from '../theme'
+import logo from '../assets/tazama-pipelines.png'
 import './AppShell.css'
+
+const CRUMBS: Record<string, string> = {
+  '/': 'Inbox',
+  '/queue': 'Mail preview',
+  '/archive': 'Archives',
+  '/files': 'Files',
+  '/register': 'Register Mail',
+  '/email-drafts': 'Drafts',
+  '/search': 'Trace mail movement',
+  '/submit': 'Submit document',
+  '/regions': 'Regions',
+  '/stations': 'Stations',
+  '/departments': 'Departments',
+  '/users': 'Users',
+  '/notifications': 'Notifications',
+  '/settings': 'Settings',
+  '/signature': 'Signature',
+  '/download-requests': 'Download requests',
+  '/download-access': 'Download access',
+}
+
+const ROLE_LABEL: Record<string, string> = {
+  admin: 'System admin',
+  registrar: 'Registry',
+  senior_manager: 'Senior manager',
+  hos: 'Head of station',
+  hod: 'Head of department',
+  staff: 'Staff',
+}
+
+function crumbFor(pathname: string) {
+  if (pathname.startsWith('/documents/')) return 'Document'
+  if (pathname.startsWith('/files/')) return 'File'
+  return CRUMBS[pathname] || 'Home'
+}
 
 type NotifItem = {
   id: number
@@ -28,7 +64,6 @@ export function AppShell() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const isRegistrar = user?.role === 'registrar' || user?.role === 'admin'
   const [unread, setUnread] = useState(0)
   const [notifOpen, setNotifOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -111,59 +146,98 @@ export function AppShell() {
     else navigate('/notifications')
   }
 
-  const navLinks = isRegistrar ? (
+  const isRegistry = user?.role === 'registrar' || user?.role === 'admin'
+  const seesPreview = isRegistry || user?.role === 'senior_manager'
+  const crumb = crumbFor(location.pathname)
+  const roleLabel = ROLE_LABEL[user?.role || ''] || (user?.role || '').replaceAll('_', ' ')
+  const createTo = isRegistry ? '/register' : '/submit'
+
+  const navLinks = (
     <>
+      <div className="shell-nav-label">Mail movement</div>
+      {isRegistry && <NavLink to="/email-drafts">1.0 Drafts</NavLink>}
+      {isRegistry && <NavLink to="/register">2.0 Register Mail</NavLink>}
+      {seesPreview && <NavLink to="/queue">3.0 Preview Box</NavLink>}
       <NavLink to="/" end>
-        All documents
+        4.0 Inbox
       </NavLink>
-      <NavLink to="/queue">Registry queue</NavLink>
-      <NavLink to="/register">Register</NavLink>
-      <NavLink to="/email-drafts">Email drafts</NavLink>
-      <NavLink to="/branches">Branches</NavLink>
-      <NavLink to="/departments">Departments</NavLink>
-      <NavLink to="/users">Users</NavLink>
-      <NavLink to="/search">Search</NavLink>
-      <NavLink to="/notifications">Notifications</NavLink>
-      <NavLink to="/signature">Signature</NavLink>
-      <NavLink to="/settings">Settings</NavLink>
-    </>
-  ) : (
-    <>
-      <NavLink to="/" end>
-        My inbox
-      </NavLink>
-      <NavLink to="/submit">Submit document</NavLink>
-      <NavLink to="/search">Search</NavLink>
-      <NavLink to="/notifications">Notifications</NavLink>
-      <NavLink to="/signature">Signature</NavLink>
-      <NavLink to="/settings">Settings</NavLink>
+      <NavLink to="/archive">5.0 Archives</NavLink>
+      <NavLink to="/files">6.0 Files</NavLink>
+      <NavLink to="/search">7.0 Trace mail movement</NavLink>
+      {!isRegistry && <NavLink to="/submit">8.0 Submit document</NavLink>}
+      {isRegistry && (
+        <>
+          <div className="shell-nav-box">8.0 Administration</div>
+          <NavLink to="/regions">Regions</NavLink>
+          <NavLink to="/stations">Stations</NavLink>
+          <NavLink to="/departments">Departments</NavLink>
+          <NavLink to="/users">Users</NavLink>
+        </>
+      )}
+      <NavLink to="/notifications">9.0 Notifications</NavLink>
     </>
   )
 
   return (
     <div className={`shell${menuOpen ? ' menu-open' : ''}`}>
-      <header className="shell-topbar">
-        <button
-          type="button"
-          className="hamburger"
-          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-          aria-expanded={menuOpen}
-          aria-controls="shell-drawer"
-          onClick={() => {
-            setNotifOpen(false)
-            setMenuOpen((v) => !v)
-          }}
-        >
-          <span className="hamburger-line" />
-          <span className="hamburger-line" />
-          <span className="hamburger-line" />
-        </button>
-        <div className="shell-brand shell-brand-compact">
-          <span className="shell-mark" aria-hidden />
-          <div className="shell-title">EDMS</div>
+      <div className="shell-chrome">
+        <header className="shell-identity">
+          <button
+            type="button"
+            className="hamburger"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            aria-controls="shell-drawer"
+            onClick={() => {
+              setNotifOpen(false)
+              setMenuOpen((v) => !v)
+            }}
+          >
+            <span className="hamburger-line" />
+            <span className="hamburger-line" />
+            <span className="hamburger-line" />
+          </button>
+          <Link to="/" className="shell-brand" onClick={() => setMenuOpen(false)}>
+            <img src={logo} alt="TAZAMA Pipelines" />
+            <span className="shell-brand-text">
+              <span className="shell-brand-name">rDMS-HQ</span>
+              <span className="shell-brand-sep" aria-hidden>
+                |
+              </span>
+              <span className="shell-brand-full">Records & Document Management System</span>
+            </span>
+          </Link>
+          <div className="shell-identity-actions">
+            <span className="shell-role">{roleLabel}</span>
+            <span className="shell-identity-links">
+              <ThemeToggle variant="icon" />
+              <Link to="/settings">Settings</Link>
+              <button
+                type="button"
+                className="shell-text-btn"
+                onClick={() => {
+                  setMenuOpen(false)
+                  void logout()
+                }}
+              >
+                Log out
+              </button>
+            </span>
+            <Link to={createTo} className="shell-create" onClick={() => setMenuOpen(false)}>
+              Create new
+            </Link>
+          </div>
+        </header>
+        <div className="shell-crumb">
+          <Link to="/">Home</Link>
+          {crumb !== 'Home' && (
+            <>
+              <span aria-hidden> › </span>
+              <span>{crumb}</span>
+            </>
+          )}
         </div>
-        <span className="shell-topbar-spacer" aria-hidden />
-      </header>
+      </div>
 
       {menuOpen && (
         <button
@@ -174,40 +248,34 @@ export function AppShell() {
         />
       )}
 
-      <aside id="shell-drawer" className="shell-rail">
-        <div className="shell-brand shell-brand-desktop">
-          <span className="shell-mark" aria-hidden />
-          <div>
-            <div className="shell-title">EDMS</div>
-            <div className="shell-sub">Document registry</div>
-          </div>
-        </div>
-        <div className="shell-drawer-label">Menu</div>
-        <nav className="shell-nav">{navLinks}</nav>
-        <div className="shell-user">
-          <div className="shell-user-row">
-            <div>
+      <div className="shell-body">
+        <aside id="shell-drawer" className="shell-queries">
+          <div className="shell-queries-title">User queries</div>
+          <nav className="shell-nav">{navLinks}</nav>
+          <div className="shell-drawer-utils">
+            <div className="shell-drawer-user">
               <strong>{user?.name}</strong>
-              <div className="muted">{user?.role?.replaceAll('_', ' ')}</div>
+              <span>{roleLabel}</span>
             </div>
+            <ThemeToggle variant="icon" />
+            <Link to="/settings" onClick={() => setMenuOpen(false)}>
+              Settings
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false)
+                void logout()
+              }}
+            >
+              Log out
+            </button>
           </div>
-          <ThemeToggle />
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => {
-              setMenuOpen(false)
-              void logout()
-            }}
-          >
-            Log out
-          </button>
-        </div>
-      </aside>
-
-      <main className="shell-main">
-        <Outlet />
-      </main>
+        </aside>
+        <main className="shell-main">
+          <Outlet />
+        </main>
+      </div>
 
       <div className="notif-fab-wrap">
         {notifOpen && (
