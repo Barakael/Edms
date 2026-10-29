@@ -44,14 +44,18 @@ class EmailIngestService
                 ]);
 
                 $document = Document::query()->create([
-                    'status' => Document::STATUS_DRAFT,
-                    'sensitivity' => Document::SENSITIVITY_NORMAL,
+                'status' => Document::STATUS_DRAFT,
+                'box' => Document::BOX_PREVIEW,
+                'sensitivity' => Document::SENSITIVITY_NORMAL,
                     'created_by' => $registrar?->id ?? User::query()->firstOrFail()->id,
                 ]);
 
                 DocumentRegistration::query()->create([
                     'document_id' => $document->id,
-                    'mail_subject_type' => 'inbound_email',
+                    'mail_subject_type' => $payload['subject'] ?? 'inbound_email',
+                    'mail_type' => 'EMAIL',
+                    'mail_subject' => $payload['subject'] ?? 'inbound_email',
+                    'mail_priority' => 'normal',
                     'sender_or_origin' => $payload['from'] ?? null,
                     'received_date' => now()->toDateString(),
                     'reference_number' => null,
