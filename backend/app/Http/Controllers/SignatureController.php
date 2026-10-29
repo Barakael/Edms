@@ -24,10 +24,13 @@ class SignatureController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
+        if ($user->role !== User::ROLE_ADMIN) {
+            return response()->json(['message' => 'Only an admin can register signatures.'], 403);
+        }
 
         $data = $request->validate([
             'ink_data' => ['required', 'string'],
-            'capture_source' => ['required', Rule::in(['usb_pad', 'iphone', 'pointer'])],
+            'capture_source' => ['required', Rule::in(['usb_pad', 'iphone', 'pointer', 'upload'])],
             'device_metadata' => ['nullable', 'array'],
         ]);
 
@@ -92,7 +95,7 @@ class SignatureController extends Controller
 
         $signature = $user->activeSignature;
         if (! $signature) {
-            return response()->json(['message' => 'Capture a signature in your profile first.'], 422);
+            return response()->json(['message' => 'An admin must register your signature before you can place it.'], 422);
         }
 
         $placement = DocumentSignaturePlacement::query()->create([
@@ -190,10 +193,57 @@ class SignatureController extends Controller
         $this->access->assertCanActOnWorkflow($user, $document);
     }
 
+    public function assignForUser(Request $request, User $target): JsonResponse
+    {
+        /** @var User $actor */
+        $actor = $request->user();
+        if ($actor->role !== User::ROLE_ADMIN) {
+            return response()->json(['message' => 'Only an admin can register signatures.'], 403);
+        }
+
+        $request->validate([
+            'file' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'max:5120'],
+            'ink_data' => ['nullable', 'string'],
+        ]);
+
+        if ($request->hasFile('file')) {
+            $uploaded = $request->file('file');
+            $mime = $uploaded->getMimeType() ?: 'image/png';
+            $raw = file_get_contents($uploaded->getRealPath());
+            if ($raw === false) {
+                return response()->json(['message' => 'Could not read the signature file.'], 422);
+            }
+            $ink = 'data:'.$mime.';base64,'.base64_encode($raw);
+            $source = 'upload';
+        } elseif ($request->filled('ink_data')) {
+            $ink = $request->string('ink_data')->toString();
+            $source = 'pointer';
+        } else {
+            return response()->json(['message' => 'Upload a signature image from this computer.'], 422);
+        }
+
+        Signature::query()
+            ->where('user_id', $target->id)
+            ->whereNull('revoked_at')
+            ->update(['revoked_at' => now()]);
+
+        $signature = Signature::query()->create([
+            'user_id' => $target->id,
+            'ink_data' => $ink,
+            'capture_source' => $source,
+            'device_metadata' => ['assigned_by' => $actor->id],
+        ]);
+
+        return response()->json($signature, 201);
+    }
+
     public function startIphoneSession(Request $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
+        if ($user->role !== User::ROLE_ADMIN) {
+            return response()->json(['message' => 'Only an admin can register signatures.'], 403);
+        }
         $token = Str::random(48);
 
         $session = SignatureCaptureSession::query()->create([
