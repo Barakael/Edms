@@ -99,23 +99,154 @@
   min-height: 0;
 }
 
-.doc-comment-compose {
-  padding: 0.55rem 0.75rem;
+.doc-comment-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.doc-comment-author {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.doc-comment-body {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: var(--color-gray-900);
+}
+
+.doc-comment-attachment {
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--color-gray-600);
+  word-break: break-word;
+}
+
+.doc-comment-time {
+  font-size: 0.7rem;
+  line-height: 1.3;
+  color: var(--color-gray-600);
+  opacity: 0.9;
+}
+
+.doc-comments-pdf {
+  align-self: flex-start;
   flex-shrink: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: #1a7f93;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.doc-comment-compose h3 {
-  margin: 0 0 0.35rem;
-  font-size: 0.9rem;
+.doc-comments-pdf:hover {
+  text-decoration: underline;
 }
 
-.doc-comment-compose .field {
-  margin-bottom: 0.4rem;
+.doc-comment-bar {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 
-.doc-comment-compose textarea {
-  resize: none;
-  min-height: 2.5rem;
+.doc-comment-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  padding: 0 0.35rem;
+  font-size: 0.78rem;
+  color: var(--color-gray-600);
+}
+
+.doc-comment-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-comment-chip button {
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.doc-comment-row {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  border: 1px solid var(--color-gray-300);
+  border-radius: 999px;
+  background: var(--color-surface);
+  padding: 0.15rem 0.2rem 0.15rem 0.2rem;
+}
+
+.doc-comment-row:focus-within {
+  border-color: #1a7f93;
+  box-shadow: 0 0 0 3px rgba(26, 127, 147, 0.16);
+}
+
+.doc-comment-bar input.doc-comment-input:not([type='checkbox']):not([type='radio']):not([type='file']) {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  padding: 0.35rem 0.25rem;
+}
+
+.doc-comment-bar input.doc-comment-input:not([type='checkbox']):not([type='radio']):not([type='file']):focus {
+  border: 0;
+  box-shadow: none;
+}
+
+.doc-comment-attach,
+.doc-comment-send {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 0;
+}
+
+.doc-comment-attach svg,
+.doc-comment-send svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.doc-comment-attach {
+  background: transparent;
+  color: #1a7f93;
+}
+
+.doc-comment-attach.has-file,
+.doc-comment-attach:hover {
+  background: rgba(26, 127, 147, 0.12);
+}
+
+.doc-comment-send {
+  background: #1a7f93;
+  color: #fff;
+}
+
+.doc-comment-send:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .doc-aside-panel {
