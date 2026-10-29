@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\RefreshToken;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\MailRoutingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -14,7 +15,10 @@ use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
-    public function __construct(private AuditLogger $audit) {}
+    public function __construct(
+        private AuditLogger $audit,
+        private MailRoutingService $routing,
+    ) {}
 
     public function login(Request $request): JsonResponse
     {
@@ -228,6 +232,11 @@ class AuthController extends Controller
             'email' => $user->email,
             'phone' => $user->phone,
             'role' => $user->role,
+            'department_id' => $user->department_id,
+            'department_name' => $user->department?->name,
+            'hod_name' => $user->role === User::ROLE_STAFF
+                ? $this->routing->findHeadOfDepartment($user)?->name
+                : null,
             'can_download' => (bool) $user->can_download,
             'signature_2fa_enabled' => (bool) $user->signature_2fa_enabled,
             'has_signature' => (bool) $user->activeSignature,
