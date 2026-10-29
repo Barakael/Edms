@@ -74,9 +74,9 @@
   --badge-closed-bg: rgba(59, 130, 246, 0.22);
   --badge-closed-fg: #eff6ff;
   --badge-closed-border: rgba(147, 197, 253, 0.55);
-  --badge-bank-bg: rgba(239, 68, 68, 0.16);
-  --badge-bank-fg: #fecaca;
-  --badge-bank-border: rgba(248, 113, 113, 0.65);
+  --badge-sensitive-bg: rgba(239, 68, 68, 0.16);
+  --badge-sensitive-fg: #fecaca;
+  --badge-sensitive-border: rgba(248, 113, 113, 0.65);
   --error-fg: #fecaca;
   --error-bg: rgba(239, 68, 68, 0.12);
   --error-border: rgba(248, 113, 113, 0.5);
@@ -142,9 +142,9 @@
   --badge-closed-bg: rgba(37, 99, 235, 0.14);
   --badge-closed-fg: #1e3a8a;
   --badge-closed-border: rgba(37, 99, 235, 0.35);
-  --badge-bank-bg: rgba(239, 68, 68, 0.1);
-  --badge-bank-fg: #991b1b;
-  --badge-bank-border: rgba(220, 38, 38, 0.35);
+  --badge-sensitive-bg: rgba(239, 68, 68, 0.1);
+  --badge-sensitive-fg: #991b1b;
+  --badge-sensitive-border: rgba(220, 38, 38, 0.35);
   --error-fg: #991b1b;
   --error-bg: rgba(239, 68, 68, 0.1);
   --error-border: rgba(220, 38, 38, 0.35);
@@ -359,10 +359,10 @@ select option {
   border-color: var(--badge-closed-border);
 }
 
-.badge-bank {
-  background: var(--badge-bank-bg);
-  color: var(--badge-bank-fg);
-  border-color: var(--badge-bank-border);
+.badge-sensitive {
+  background: var(--badge-sensitive-bg);
+  color: var(--badge-sensitive-fg);
+  border-color: var(--badge-sensitive-border);
   box-shadow: var(--glow-red);
 }
 
