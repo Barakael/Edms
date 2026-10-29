@@ -10,12 +10,16 @@ class DocumentRegistration extends Model
     protected $fillable = [
         'document_id',
         'mail_subject_type',
+        'mail_type',
+        'mail_subject',
         'reference_number',
         'file_number',
         'folio_number',
         'sender_or_origin',
         'received_date',
         'classification',
+        'mail_priority',
+        'volume',
         'department',
         'department_id',
     ];
