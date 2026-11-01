@@ -22,13 +22,15 @@ class User extends Authenticatable implements JWTSubject
 
     public const ROLE_SENIOR_MANAGER = 'senior_manager';
 
-    public const ROLE_HOS = 'hos';
-
     public const ROLE_HOD = 'hod';
 
-    public const ROLE_STATION_SUPERVISOR = 'station_supervisor';
-
     public const ROLE_ADMIN = 'admin';
+
+    /** @deprecated Remapped to hod */
+    public const ROLE_HOS = 'hos';
+
+    /** @deprecated Remapped to staff */
+    public const ROLE_STATION_SUPERVISOR = 'station_supervisor';
 
     protected $fillable = [
         'name',
@@ -37,7 +39,6 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'role',
         'office_id',
-        'station_id',
         'department_id',
         'active',
         'can_download',
@@ -146,36 +147,26 @@ class User extends Authenticatable implements JWTSubject
                 'description' => 'Sees Preview Box and archives for the region.',
             ],
             [
-                'value' => self::ROLE_HOS,
-                'label' => 'Head of station',
-                'description' => 'Receives station mail and shares into Preview Box.',
-            ],
-            [
-                'value' => self::ROLE_STATION_SUPERVISOR,
-                'label' => 'Station supervisor',
-                'description' => 'Sends internal memos to the Head of Station.',
-            ],
-            [
                 'value' => self::ROLE_HOD,
                 'label' => 'Head of department',
-                'description' => 'Receives department staff mail and shares to Head of Station.',
+                'description' => 'Receives department mail, manages department staff/files, and can direct mail to other departments.',
             ],
             [
                 'value' => self::ROLE_STAFF,
                 'label' => 'Staff',
-                'description' => 'Submits mail to their Head of Department.',
+                'description' => 'Submits internal memos and documents to their Head of Department.',
             ],
         ];
+    }
+
+    public function seesAllDepartments(): bool
+    {
+        return $this->isRegistrar() || $this->isSeniorManager();
     }
 
     public function office(): BelongsTo
     {
         return $this->belongsTo(Office::class);
-    }
-
-    public function station(): BelongsTo
-    {
-        return $this->belongsTo(Station::class);
     }
 
     public function department(): BelongsTo
