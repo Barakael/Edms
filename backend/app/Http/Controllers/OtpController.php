@@ -71,7 +71,7 @@ class OtpController extends Controller
                 return response()->json(['message' => 'Unable to send OTP email.'], 500);
             }
         } else {
-            $this->sms->send($user->phone, "EDMS signature code: {$code} (expires in {$ttl}s)");
+            $this->sms->send($user->phone, "rDMS-HQ signature code: {$code} (expires in {$ttl}s)");
             if (config('app.debug')) {
                 return response()->json([
                     'message' => 'OTP issued via SMS scaffold (debug).',
