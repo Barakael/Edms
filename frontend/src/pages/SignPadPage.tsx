@@ -78,7 +78,7 @@ export function SignPadPage() {
   return (
     <div className="sign-pad-page">
       <header>
-        <h1>EDMS sign</h1>
+        <h1>rDMS-HQ sign</h1>
         <p className="muted">
           Draw with your finger, or import a signature image from Photos (including one you saved from
           Apple Markup). Apple’s built-in Markup signer cannot be opened from a website.
