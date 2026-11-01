@@ -18,9 +18,4 @@ class Office extends Model
     {
         return $this->hasMany(Department::class);
     }
-
-    public function stations(): HasMany
-    {
-        return $this->hasMany(Station::class);
-    }
 }
