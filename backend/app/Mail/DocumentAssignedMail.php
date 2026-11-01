@@ -24,7 +24,7 @@ class DocumentAssignedMail extends Mailable
         $ref = $this->document->registration?->reference_number ?: '#'.$this->document->id;
 
         return new Envelope(
-            subject: 'EDMS: Document assigned — '.$ref,
+            subject: 'rDMS-HQ: Document assigned — '.$ref,
         );
     }
 
@@ -34,7 +34,7 @@ class DocumentAssignedMail extends Mailable
 
         return new Content(
             htmlString: '<p>Hello '.e($this->assignee->name).',</p>'
-                .'<p>A document has been assigned to you in EDMS.</p>'
+                .'<p>A document has been assigned to you in rDMS-HQ.</p>'
                 .'<p><strong>Reference:</strong> '
                 .e($this->document->registration?->reference_number ?: 'Doc #'.$this->document->id)
                 .'</p>'
