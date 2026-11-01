@@ -19,6 +19,7 @@ use App\Services\MailRoutingService;
 use App\Services\Sms\SmsSender;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
@@ -41,7 +42,7 @@ class DocumentController extends Controller
         $user = $request->user();
 
         $box = $request->string('box')->toString() ?: Document::BOX_INBOX;
-        if (! in_array($box, [Document::BOX_INBOX, Document::BOX_PREVIEW, Document::BOX_ARCHIVE], true)) {
+        if (! in_array($box, [Document::BOX_INBOX, Document::BOX_PREVIEW, Document::BOX_ARCHIVE, Document::BOX_BULK], true)) {
             throw ValidationException::withMessages(['box' => 'Unknown mail box.']);
         }
 
@@ -65,6 +66,10 @@ class DocumentController extends Controller
                 $query->where(function ($q) use ($user) {
                     $q->where('office_id', $user->office_id)->orWhereNull('office_id');
                 });
+            }
+        } elseif ($box === Document::BOX_BULK) {
+            if (! $user->isRegistrar()) {
+                return response()->json(['message' => 'Bulk Uploads is for registry only.'], 403);
             }
         } else {
             $this->scopeVisible($query, $user, Document::BOX_ARCHIVE);
@@ -156,6 +161,7 @@ class DocumentController extends Controller
             'new_file_number' => ['nullable', 'string', 'max:255'],
             'new_file_name' => ['nullable', 'string', 'max:255'],
             'new_file_office_id' => ['nullable', 'integer', 'exists:offices,id'],
+            'new_file_department_id' => ['nullable', 'integer', 'exists:departments,id'],
             'files' => ['nullable', 'array'],
             'files.*' => ['file', 'max:51200', 'mimetypes:application/pdf,image/jpeg,image/png,image/webp'],
             'route_user_ids' => ['nullable', 'array'],
@@ -164,9 +170,6 @@ class DocumentController extends Controller
 
         if ($user->role === User::ROLE_STAFF) {
             $data['department_id'] = $user->department_id;
-        }
-
-        if ($user->role === User::ROLE_STATION_SUPERVISOR) {
             $hasComment = filled($data['comment'] ?? null);
             $hasFiles = $request->hasFile('files');
             if (! $hasComment && ! $hasFiles) {
@@ -193,12 +196,6 @@ class DocumentController extends Controller
 
         if ($user->role === User::ROLE_STAFF) {
             $assignee = $this->routing->headOfDepartment($user);
-            $status = Document::STATUS_IN_CIRCULATION;
-            $box = Document::BOX_INBOX;
-            $awaiting = false;
-            $officeId = $assignee->office_id ?: $officeId;
-        } elseif ($user->role === User::ROLE_STATION_SUPERVISOR) {
-            $assignee = $this->routing->headOfStation($user);
             $status = Document::STATUS_IN_CIRCULATION;
             $box = Document::BOX_INBOX;
             $awaiting = false;
@@ -257,7 +254,7 @@ class DocumentController extends Controller
 
             $this->storeFiles($document, $request);
 
-            $directAssign = in_array($user->role, [User::ROLE_STAFF, User::ROLE_STATION_SUPERVISOR], true);
+            $directAssign = $user->role === User::ROLE_STAFF;
             WorkflowEvent::query()->create([
                 'document_id' => $document->id,
                 'from_user_id' => $user->id,
@@ -323,6 +320,201 @@ class DocumentController extends Controller
             'currentAssignee:id,name,role',
             'registryFile:id,number,name,status',
         ]), 201);
+    }
+
+    public function bulkIngest(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $this->access->assertRegistrar($user);
+
+        $request->validate([
+            'files' => ['required', 'array', 'min:1'],
+            'files.*' => ['file', 'max:51200', 'mimetypes:application/pdf,image/jpeg,image/png,image/webp'],
+        ]);
+
+        $results = [];
+        $created = 0;
+        $skipped = 0;
+
+        foreach ($request->file('files') as $uploaded) {
+            /** @var UploadedFile $uploaded */
+            $checksum = hash_file('sha256', $uploaded->getRealPath());
+            $existing = DocumentFile::query()
+                ->where('checksum', $checksum)
+                ->whereHas('document', fn ($q) => $q->whereNull('deleted_at'))
+                ->with('document:id,box,status')
+                ->first();
+
+            if ($existing) {
+                $skipped++;
+                $results[] = [
+                    'id' => $existing->document_id,
+                    'skipped' => true,
+                    'reason' => 'duplicate',
+                    'original_filename' => $uploaded->getClientOriginalName(),
+                ];
+
+                continue;
+            }
+
+            $original = $uploaded->getClientOriginalName() ?: 'scan';
+            $subject = pathinfo($original, PATHINFO_FILENAME) ?: $original;
+
+            $document = DB::transaction(function () use ($user, $uploaded, $subject, $checksum) {
+                $document = Document::query()->create([
+                    'status' => Document::STATUS_DRAFT,
+                    'box' => Document::BOX_BULK,
+                    'sensitivity' => Document::SENSITIVITY_NORMAL,
+                    'created_by' => $user->id,
+                    'office_id' => $user->office_id,
+                    'submitted_by' => null,
+                    'awaiting_registry' => false,
+                    'current_assignee_id' => null,
+                ]);
+
+                DocumentRegistration::query()->create([
+                    'document_id' => $document->id,
+                    'mail_subject' => $subject,
+                    'mail_type' => 'SCAN',
+                    'received_date' => now()->toDateString(),
+                    'mail_priority' => 'normal',
+                ]);
+
+                $this->storeUploadedFile($document, $uploaded, $checksum);
+
+                WorkflowEvent::query()->create([
+                    'document_id' => $document->id,
+                    'from_user_id' => $user->id,
+                    'to_user_id' => null,
+                    'action' => 'bulk_ingest',
+                    'payload' => [
+                        'box' => Document::BOX_BULK,
+                        'filename' => $uploaded->getClientOriginalName(),
+                    ],
+                    'created_at' => now(),
+                ]);
+
+                return $document;
+            });
+
+            $created++;
+            $document->load(['registration', 'files']);
+            $results[] = [
+                'id' => $document->id,
+                'skipped' => false,
+                'original_filename' => $uploaded->getClientOriginalName(),
+                'document' => $document,
+            ];
+            $this->audit->log($user, 'document_bulk_ingest', 'document', (string) $document->id, 'success', null, $request);
+        }
+
+        return response()->json([
+            'created' => $created,
+            'skipped' => $skipped,
+            'results' => $results,
+        ], 201);
+    }
+
+    public function bulkAction(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $this->access->assertRegistrar($user);
+
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:documents,id'],
+            'action' => ['required', Rule::in(['inbox', 'preview', 'archive', 'delete'])],
+        ]);
+
+        $documents = Document::query()
+            ->whereIn('id', $data['ids'])
+            ->where('box', Document::BOX_BULK)
+            ->whereNull('deleted_at')
+            ->get();
+
+        if ($documents->isEmpty()) {
+            throw ValidationException::withMessages([
+                'ids' => 'No bulk-upload documents matched those ids.',
+            ]);
+        }
+
+        $processed = [];
+
+        DB::transaction(function () use ($documents, $data, $user, $request, &$processed) {
+            foreach ($documents as $document) {
+                $action = $data['action'];
+
+                if ($action === 'inbox') {
+                    $document->forceFill([
+                        'box' => Document::BOX_INBOX,
+                        'status' => Document::STATUS_IN_CIRCULATION,
+                        'current_assignee_id' => $user->id,
+                        'awaiting_registry' => false,
+                    ])->save();
+
+                    WorkflowEvent::query()->create([
+                        'document_id' => $document->id,
+                        'from_user_id' => $user->id,
+                        'to_user_id' => $user->id,
+                        'action' => 'bulk_to_inbox',
+                        'payload' => ['box' => Document::BOX_INBOX],
+                        'created_at' => now(),
+                    ]);
+                } elseif ($action === 'preview') {
+                    $document->forceFill([
+                        'box' => Document::BOX_PREVIEW,
+                        'status' => Document::STATUS_PENDING_REGISTRY,
+                        'current_assignee_id' => null,
+                        'awaiting_registry' => true,
+                    ])->save();
+
+                    WorkflowEvent::query()->create([
+                        'document_id' => $document->id,
+                        'from_user_id' => $user->id,
+                        'to_user_id' => null,
+                        'action' => 'bulk_to_preview',
+                        'payload' => ['box' => Document::BOX_PREVIEW],
+                        'created_at' => now(),
+                    ]);
+                } elseif ($action === 'archive') {
+                    $document->forceFill([
+                        'status' => Document::STATUS_CLOSED,
+                        'box' => Document::BOX_ARCHIVE,
+                        'closed_at' => now(),
+                        'awaiting_registry' => false,
+                        'current_assignee_id' => null,
+                    ])->save();
+
+                    WorkflowEvent::query()->create([
+                        'document_id' => $document->id,
+                        'from_user_id' => $user->id,
+                        'action' => 'close',
+                        'payload' => ['box' => Document::BOX_ARCHIVE, 'from' => 'bulk'],
+                        'created_at' => now(),
+                    ]);
+                } else {
+                    WorkflowEvent::query()->create([
+                        'document_id' => $document->id,
+                        'from_user_id' => $user->id,
+                        'action' => 'delete',
+                        'payload' => ['from' => 'bulk'],
+                        'created_at' => now(),
+                    ]);
+                    $document->delete();
+                }
+
+                $this->audit->log($user, 'document_bulk_'.$action, 'document', (string) $document->id, 'success', null, $request);
+                $processed[] = $document->id;
+            }
+        });
+
+        return response()->json([
+            'action' => $data['action'],
+            'processed' => $processed,
+            'count' => count($processed),
+        ]);
     }
 
     public function show(Request $request, Document $document): JsonResponse
@@ -496,7 +688,7 @@ class DocumentController extends Controller
         }
 
         $isPush = (int) $document->current_assignee_id === (int) $user->id;
-        $hierarchy = in_array($user->role, [User::ROLE_STAFF, User::ROLE_HOD, User::ROLE_HOS, User::ROLE_STATION_SUPERVISOR], true);
+        $hierarchy = in_array($user->role, [User::ROLE_STAFF, User::ROLE_HOD], true);
 
         if ($user->isRegistrar()) {
             $data = $request->validate([
@@ -513,7 +705,7 @@ class DocumentController extends Controller
                 'to' => $assignee->id,
             ], $request);
 
-            return response()->json($document->fresh()->load(['registration', 'currentAssignee:id,name,role', 'routeSteps.user:id,name']));
+            return response()->json($document->fresh()->load(['registration.departmentRelation', 'currentAssignee:id,name,role', 'routeSteps.user:id,name']));
         }
 
         if (! $isPush || ! $hierarchy) {
@@ -522,6 +714,47 @@ class DocumentController extends Controller
 
         if ($document->status === Document::STATUS_PENDING_REGISTRY || $document->awaiting_registry) {
             return response()->json(['message' => 'Only registry can distribute mail in the Preview Box.'], 403);
+        }
+
+        // HoD may direct to another department's HoD
+        if ($user->role === User::ROLE_HOD && $request->filled('department_id')) {
+            $targetDeptId = $request->integer('department_id');
+            if ((int) $targetDeptId === (int) $user->department_id) {
+                return response()->json(['message' => 'Choose a different department to direct this mail.'], 422);
+            }
+
+            $next = $this->routing->directToDepartment($targetDeptId);
+            /** @var User $assignee */
+            $assignee = $next['user'];
+            $this->placeInInbox($document, $user, $assignee, 'push');
+            $document->forceFill([
+                'office_id' => $next['office_id'] ?: $document->office_id,
+            ])->save();
+            $document->registration?->forceFill([
+                'department_id' => $next['department']->id,
+                'department' => $next['department']->name,
+            ])->save();
+
+            WorkflowEvent::query()->create([
+                'document_id' => $document->id,
+                'from_user_id' => $user->id,
+                'to_user_id' => $assignee->id,
+                'action' => 'direct_department',
+                'payload' => [
+                    'box' => Document::BOX_INBOX,
+                    'department_id' => $next['department']->id,
+                    'department' => $next['department']->name,
+                ],
+                'created_at' => now(),
+            ]);
+
+            $this->notifyAssignment($user, $document, $assignee, 'push', $request);
+            $this->audit->log($user, 'document_direct_department', 'document', (string) $document->id, 'success', [
+                'to' => $assignee->id,
+                'department_id' => $next['department']->id,
+            ], $request);
+
+            return response()->json($document->fresh()->load(['registration.departmentRelation', 'currentAssignee:id,name,role', 'routeSteps.user:id,name']));
         }
 
         $next = $this->routing->nextHolder($user);
@@ -560,7 +793,7 @@ class DocumentController extends Controller
             'box' => $document->fresh()->box,
         ], $request);
 
-        return response()->json($document->fresh()->load(['registration', 'currentAssignee:id,name,role', 'routeSteps.user:id,name']));
+        return response()->json($document->fresh()->load(['registration.departmentRelation', 'currentAssignee:id,name,role', 'routeSteps.user:id,name']));
     }
 
     public function lock(Request $request, Document $document): JsonResponse
@@ -831,7 +1064,7 @@ class DocumentController extends Controller
         }
 
         if ($assignee->phone) {
-            $this->sms->send($assignee->phone, "EDMS: mail {$ref} is in your inbox.");
+            $this->sms->send($assignee->phone, "rDMS-HQ: mail {$ref} is in your inbox.");
         }
     }
 
@@ -878,11 +1111,17 @@ class DocumentController extends Controller
                     $w->where('from_user_id', $user->id)->orWhere('to_user_id', $user->id);
                 });
 
-            if ($user->isSeniorManager() && ($box === null || $box === Document::BOX_ARCHIVE || $box === Document::BOX_PREVIEW)) {
+            if ($user->department_id) {
+                $deptId = (int) $user->department_id;
+                $q->orWhereHas('registration', fn ($r) => $r->where('department_id', $deptId))
+                    ->orWhereHas('registryFile', fn ($f) => $f->where('department_id', $deptId));
+            }
+
+            if ($user->isSeniorManager()) {
                 $q->orWhere(function ($q2) use ($user) {
                     $q2->where(function ($q3) use ($user) {
                         $q3->where('office_id', $user->office_id)->orWhereNull('office_id');
-                    })->whereIn('box', [Document::BOX_PREVIEW, Document::BOX_ARCHIVE]);
+                    });
                 });
             }
         });
@@ -942,11 +1181,25 @@ class DocumentController extends Controller
             ]);
         }
 
+        $departmentId = ! empty($data['new_file_department_id'])
+            ? (int) $data['new_file_department_id']
+            : (! empty($data['department_id'])
+                ? (int) $data['department_id']
+                : ($user->department_id ? (int) $user->department_id : null));
+
+        if ($departmentId) {
+            $dept = Department::query()->find($departmentId);
+            if ($dept) {
+                $fileOfficeId = (int) $dept->office_id;
+            }
+        }
+
         return RegistryFile::query()->create([
             'number' => $number,
             'name' => $name,
             'status' => RegistryFile::STATUS_OPEN,
             'office_id' => $fileOfficeId,
+            'department_id' => $departmentId,
             'created_by' => $user->id,
         ]);
     }
@@ -1026,25 +1279,28 @@ class DocumentController extends Controller
             return;
         }
 
-        $disk = config('edms.storage_disk', 'edms');
-        $order = (int) $document->files()->max('sort_order');
-
         foreach ($request->file('files') as $uploaded) {
-            $order++;
-            $path = $uploaded->store('documents/'.$document->id, $disk);
-            $checksum = hash_file('sha256', $uploaded->getRealPath());
-
-            DocumentFile::query()->create([
-                'document_id' => $document->id,
-                'sort_order' => $order,
-                'original_filename' => $uploaded->getClientOriginalName(),
-                'storage_path' => $path,
-                'mime' => $uploaded->getMimeType() ?: 'application/octet-stream',
-                'page_count' => null,
-                'checksum' => $checksum,
-                'size_bytes' => $uploaded->getSize() ?: 0,
-            ]);
+            $this->storeUploadedFile($document, $uploaded);
         }
+    }
+
+    private function storeUploadedFile(Document $document, UploadedFile $uploaded, ?string $checksum = null): DocumentFile
+    {
+        $disk = config('edms.storage_disk', 'edms');
+        $order = (int) $document->files()->max('sort_order') + 1;
+        $path = $uploaded->store('documents/'.$document->id, $disk);
+        $checksum ??= hash_file('sha256', $uploaded->getRealPath());
+
+        return DocumentFile::query()->create([
+            'document_id' => $document->id,
+            'sort_order' => $order,
+            'original_filename' => $uploaded->getClientOriginalName(),
+            'storage_path' => $path,
+            'mime' => $uploaded->getMimeType() ?: 'application/octet-stream',
+            'page_count' => null,
+            'checksum' => $checksum,
+            'size_bytes' => $uploaded->getSize() ?: 0,
+        ]);
     }
 
     private function normalizeSensitivity(?string $sensitivity): string
