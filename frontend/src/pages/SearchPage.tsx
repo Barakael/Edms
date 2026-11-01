@@ -68,7 +68,9 @@ export function SearchPage() {
         </div>
       </form>
       {error && <p className="error-text">{error}</p>}
-      {searched && <MailTable docs={docs} empty="No mail matches those details." />}
+      {searched && (
+        <MailTable docs={docs} empty="No mail matches those details." showDepartment />
+      )}
     </div>
   )
 }
