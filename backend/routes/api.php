@@ -13,7 +13,6 @@ use App\Http\Controllers\RegistryFileController;
 use App\Http\Controllers\RegistryUserController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SignatureController;
-use App\Http\Controllers\StationController;
 use App\Http\Controllers\UserDirectoryController;
 use Illuminate\Support\Facades\Route;
 
@@ -50,11 +49,6 @@ Route::middleware(['auth:api', 'jwt.version', 'throttle:120,1'])->group(function
     Route::post('/departments', [DepartmentController::class, 'store']);
     Route::put('/departments/{department}', [DepartmentController::class, 'update']);
     Route::delete('/departments/{department}', [DepartmentController::class, 'destroy']);
-    Route::get('/stations', [StationController::class, 'index']);
-    Route::post('/stations', [StationController::class, 'store']);
-    Route::put('/stations/{station}', [StationController::class, 'update']);
-    Route::delete('/stations/{station}', [StationController::class, 'destroy']);
-
     Route::get('/notifications/summary', [NotificationController::class, 'summary']);
     Route::post('/notifications/mark-read', [NotificationController::class, 'markRead']);
 
@@ -77,6 +71,8 @@ Route::middleware(['auth:api', 'jwt.version', 'throttle:120,1'])->group(function
     Route::get('/documents/inbox', [DocumentController::class, 'inbox']);
     Route::get('/documents/search', [DocumentController::class, 'search']);
     Route::post('/documents', [DocumentController::class, 'store']);
+    Route::post('/documents/bulk-ingest', [DocumentController::class, 'bulkIngest']);
+    Route::post('/documents/bulk-action', [DocumentController::class, 'bulkAction']);
     Route::get('/documents/{document}/comments/pdf', [DocumentController::class, 'commentsPdf']);
     Route::get('/documents/{document}', [DocumentController::class, 'show']);
     Route::put('/documents/{document}', [DocumentController::class, 'update']);
