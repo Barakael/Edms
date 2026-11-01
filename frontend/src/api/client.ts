@@ -7,12 +7,10 @@ export type User = {
   email: string
   phone?: string | null
   role: string
+  office_id?: number | null
   department_id?: number | null
   department_name?: string | null
-  station_id?: number | null
-  station_name?: string | null
   hod_name?: string | null
-  hos_name?: string | null
   can_download?: boolean
   signature_2fa_enabled?: boolean
   has_signature?: boolean
