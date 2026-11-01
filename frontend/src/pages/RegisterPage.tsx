@@ -4,7 +4,7 @@ import { getAccessToken, api } from '../api/client'
 import { FilePicker } from '../components/FilePicker'
 import './RegisterPage.css'
 
-type Dept = { id: number; name: string; station?: { name: string } | null }
+type Dept = { id: number; name: string; office?: { name: string } | null }
 type Person = { id: number; name: string; role: string }
 
 export function RegisterPage() {
@@ -53,8 +53,8 @@ export function RegisterPage() {
   return (
     <div className="register-page">
       <header className="register-header">
-        <div>
-          <h1>Register Mail</h1>
+      <h1>Incoming bvcDocuments</h1>
+      x cbm,.        <div>
           <p className="muted">Record the mail, choose where it goes, then attach the scan.</p>
         </div>
       </header>
@@ -116,7 +116,7 @@ export function RegisterPage() {
                   <option value="">Select…</option>
                   {departments.map((d) => (
                     <option key={d.id} value={d.id}>
-                      {d.station?.name ? `${d.name} · ${d.station.name}` : d.name}
+                      {d.office?.name ? `${d.name} · ${d.office.name}` : d.name}
                     </option>
                   ))}
                 </select>
