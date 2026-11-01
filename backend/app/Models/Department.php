@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Department extends Model
 {
-    protected $fillable = ['office_id', 'station_id', 'name', 'active'];
+    protected $fillable = ['office_id', 'name', 'active'];
 
     protected function casts(): array
     {
@@ -20,13 +20,13 @@ class Department extends Model
         return $this->belongsTo(Office::class);
     }
 
-    public function station(): BelongsTo
-    {
-        return $this->belongsTo(Station::class);
-    }
-
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    public function registryFiles(): HasMany
+    {
+        return $this->hasMany(RegistryFile::class);
     }
 }
