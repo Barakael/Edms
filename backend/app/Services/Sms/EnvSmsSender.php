@@ -19,7 +19,7 @@ class EnvSmsSender implements SmsSender
 
         $provider = (string) config('edms.sms.provider', 'ehub');
         if ($provider !== 'ehub') {
-            Log::warning('EDMS SMS: unsupported provider', ['provider' => $provider]);
+            Log::warning('rDMS-HQ SMS: unsupported provider', ['provider' => $provider]);
 
             return false;
         }
@@ -32,14 +32,14 @@ class EnvSmsSender implements SmsSender
         $fromLabel = (string) config('edms.sms.from', 'TiketFasta');
 
         if ($apiKey === '' || $apiSecret === '' || $apiUrl === '' || $senderId === '') {
-            Log::error('EDMS SMS: missing eHub credentials or EHUB_SENDER_ID');
+            Log::error('rDMS-HQ SMS: missing eHub credentials or EHUB_SENDER_ID');
 
             return false;
         }
 
         $to = $this->normalizePhone($toPhone, $countryCode);
         if (! preg_match('/^'.preg_quote($countryCode, '/').'\d{9}$/', $to)) {
-            Log::warning('EDMS SMS: invalid destination number', [
+            Log::warning('rDMS-HQ SMS: invalid destination number', [
                 'to' => $toPhone,
                 'normalized' => $to,
                 'from' => $fromLabel,
@@ -57,7 +57,7 @@ class EnvSmsSender implements SmsSender
 
         $encodedBody = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if (! is_string($encodedBody)) {
-            Log::error('EDMS SMS: failed to encode payload');
+            Log::error('rDMS-HQ SMS: failed to encode payload');
 
             return false;
         }
@@ -80,7 +80,7 @@ class EnvSmsSender implements SmsSender
             $ok = $response->successful() && (bool) ($body['success'] ?? false);
 
             if (! $ok) {
-                Log::warning('EDMS SMS: eHub send failed', [
+                Log::warning('rDMS-HQ SMS: eHub send failed', [
                     'status' => $response->status(),
                     'to' => $to,
                     'from' => $fromLabel,
@@ -91,7 +91,7 @@ class EnvSmsSender implements SmsSender
                 return false;
             }
 
-            Log::info('EDMS SMS: eHub send ok', [
+            Log::info('rDMS-HQ SMS: eHub send ok', [
                 'to' => $to,
                 'from' => $fromLabel,
                 'sender_id' => $senderId,
@@ -100,7 +100,7 @@ class EnvSmsSender implements SmsSender
 
             return true;
         } catch (Throwable $e) {
-            Log::error('EDMS SMS: eHub request exception', [
+            Log::error('rDMS-HQ SMS: eHub request exception', [
                 'to' => $to,
                 'from' => $fromLabel,
                 'message' => $e->getMessage(),
