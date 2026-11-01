@@ -22,7 +22,7 @@ class SignOtpMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'EDMS signature verification code',
+            subject: 'rDMS-HQ signature verification code',
         );
     }
 
@@ -32,7 +32,7 @@ class SignOtpMail extends Mailable
 
         return new Content(
             htmlString: '<p>Hello '.e($this->user->name).',</p>'
-                .'<p>Your EDMS signature verification code is:</p>'
+                .'<p>Your rDMS-HQ signature verification code is:</p>'
                 .'<p style="font-size:24px;letter-spacing:4px;"><strong>'.e($this->code).'</strong></p>'
                 .'<p>This code expires in about '.$mins.' minute(s). Do not share it.</p>',
         );
