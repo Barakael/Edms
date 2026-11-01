@@ -226,22 +226,20 @@ class AuthController extends Controller
 
     private function userPayload(User $user): array
     {
+        $user->loadMissing(['department:id,name', 'activeSignature']);
+
         return [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
             'phone' => $user->phone,
             'role' => $user->role,
+            'office_id' => $user->office_id,
             'department_id' => $user->department_id,
             'department_name' => $user->department?->name,
             'hod_name' => $user->role === User::ROLE_STAFF
                 ? $this->routing->findHeadOfDepartment($user)?->name
                 : null,
-            'hos_name' => $user->role === User::ROLE_STATION_SUPERVISOR
-                ? $this->routing->findHeadOfStation($user)?->name
-                : null,
-            'station_id' => $user->station_id,
-            'station_name' => $user->station?->name,
             'can_download' => (bool) $user->can_download,
             'signature_2fa_enabled' => (bool) $user->signature_2fa_enabled,
             'has_signature' => (bool) $user->activeSignature,
