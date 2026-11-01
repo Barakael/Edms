@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Department;
 use App\Models\Document;
 use App\Models\RegistryFile;
 use App\Models\User;
@@ -12,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class RegistryFileController extends Controller
 {
@@ -19,10 +21,15 @@ class RegistryFileController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        /** @var User $user */
+        $user = $request->user();
+
         $query = RegistryFile::query()
-            ->with(['office:id,name', 'creator:id,name'])
+            ->with(['office:id,name', 'department:id,name,office_id', 'creator:id,name'])
             ->withCount('documents')
             ->orderBy('number');
+
+        $this->scopeFiles($query, $user, $request);
 
         if ($request->filled('status')) {
             $query->where('status', $request->string('status'));
@@ -35,8 +42,12 @@ class RegistryFileController extends Controller
             });
         }
 
-        if ($request->filled('office_id')) {
+        if ($request->filled('office_id') && $user->seesAllDepartments()) {
             $query->where('office_id', $request->integer('office_id'));
+        }
+
+        if ($request->filled('department_id') && $user->seesAllDepartments()) {
+            $query->where('department_id', $request->integer('department_id'));
         }
 
         return response()->json(['files' => $query->get()]);
@@ -46,30 +57,41 @@ class RegistryFileController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $this->access->assertRegistrar($user);
+        $this->access->assertRegistrarOrHod($user);
 
         $data = $request->validate([
             'number' => ['required', 'string', 'max:255', 'unique:registry_files,number'],
             'name' => ['required', 'string', 'max:255'],
-            'office_id' => ['required', 'integer', 'exists:offices,id'],
+            'office_id' => ['nullable', 'integer', 'exists:offices,id'],
+            'department_id' => ['nullable', 'integer', 'exists:departments,id'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
+
+        [$departmentId, $officeId] = $this->resolveOwnership($user, $data);
 
         $file = RegistryFile::query()->create([
             'number' => trim($data['number']),
             'name' => trim($data['name']),
             'status' => RegistryFile::STATUS_OPEN,
-            'office_id' => $data['office_id'],
+            'office_id' => $officeId,
+            'department_id' => $departmentId,
             'created_by' => $user->id,
             'notes' => $data['notes'] ?? null,
         ]);
 
-        return response()->json($file->load(['office:id,name', 'creator:id,name'])->loadCount('documents'), 201);
+        return response()->json(
+            $file->load(['office:id,name', 'department:id,name', 'creator:id,name'])->loadCount('documents'),
+            201
+        );
     }
 
     public function show(Request $request, RegistryFile $registryFile): JsonResponse
     {
-        $registryFile->load(['office:id,name', 'creator:id,name']);
+        /** @var User $user */
+        $user = $request->user();
+        $this->assertCanSeeFile($user, $registryFile);
+
+        $registryFile->load(['office:id,name', 'department:id,name', 'creator:id,name']);
         $registryFile->loadCount('documents');
 
         $documents = $registryFile->documents()
@@ -91,7 +113,7 @@ class RegistryFileController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $this->access->assertRegistrar($user);
+        $this->assertCanMutateFile($user, $registryFile);
 
         $data = $request->validate([
             'number' => [
@@ -101,9 +123,21 @@ class RegistryFileController extends Controller
                 Rule::unique('registry_files', 'number')->ignore($registryFile->id),
             ],
             'name' => ['sometimes', 'string', 'max:255'],
-            'office_id' => ['sometimes', 'required', 'integer', 'exists:offices,id'],
+            'office_id' => ['sometimes', 'nullable', 'integer', 'exists:offices,id'],
+            'department_id' => ['sometimes', 'nullable', 'integer', 'exists:departments,id'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
+
+        if ($user->role === User::ROLE_HOD) {
+            unset($data['department_id'], $data['office_id']);
+        } elseif (array_key_exists('department_id', $data) || array_key_exists('office_id', $data)) {
+            [$departmentId, $officeId] = $this->resolveOwnership($user, array_merge([
+                'department_id' => $data['department_id'] ?? $registryFile->department_id,
+                'office_id' => $data['office_id'] ?? $registryFile->office_id,
+            ], $data));
+            $data['department_id'] = $departmentId;
+            $data['office_id'] = $officeId;
+        }
 
         if (array_key_exists('number', $data)) {
             $data['number'] = trim($data['number']);
@@ -120,14 +154,16 @@ class RegistryFileController extends Controller
             }
         }
 
-        return response()->json($registryFile->fresh()->load(['office:id,name', 'creator:id,name'])->loadCount('documents'));
+        return response()->json(
+            $registryFile->fresh()->load(['office:id,name', 'department:id,name', 'creator:id,name'])->loadCount('documents')
+        );
     }
 
     public function destroy(Request $request, RegistryFile $registryFile): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
-        $this->access->assertRegistrar($user);
+        $this->assertCanMutateFile($user, $registryFile);
 
         $count = $registryFile->documents()->count();
         if ($count > 0) {
@@ -145,7 +181,7 @@ class RegistryFileController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $this->access->assertRegistrar($user);
+        $this->assertCanMutateFile($user, $registryFile);
 
         if ($registryFile->isArchived()) {
             throw ValidationException::withMessages([
@@ -188,7 +224,7 @@ class RegistryFileController extends Controller
         });
 
         return response()->json([
-            'file' => $registryFile->fresh()->load(['office:id,name', 'creator:id,name'])->loadCount('documents'),
+            'file' => $registryFile->fresh()->load(['office:id,name', 'department:id,name', 'creator:id,name'])->loadCount('documents'),
             'documents' => $registryFile->documents()
                 ->with(['registration', 'currentAssignee:id,name,role'])
                 ->orderByDesc('id')
@@ -200,7 +236,7 @@ class RegistryFileController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $this->access->assertRegistrar($user);
+        $this->assertCanMutateFile($user, $registryFile);
 
         if (! $registryFile->isArchived()) {
             throw ValidationException::withMessages([
@@ -228,11 +264,89 @@ class RegistryFileController extends Controller
         }
 
         return response()->json([
-            'file' => $registryFile->fresh()->load(['office:id,name', 'creator:id,name'])->loadCount('documents'),
+            'file' => $registryFile->fresh()->load(['office:id,name', 'department:id,name', 'creator:id,name'])->loadCount('documents'),
             'documents' => $registryFile->documents()
                 ->with(['registration', 'currentAssignee:id,name,role'])
                 ->orderByDesc('id')
                 ->get(),
         ]);
+    }
+
+    private function scopeFiles($query, User $user, Request $request): void
+    {
+        if ($user->seesAllDepartments()) {
+            return;
+        }
+
+        if (! $user->department_id) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $query->where('department_id', $user->department_id);
+    }
+
+    private function assertCanSeeFile(User $user, RegistryFile $file): void
+    {
+        if ($user->seesAllDepartments()) {
+            return;
+        }
+
+        if ($user->department_id && (int) $file->department_id === (int) $user->department_id) {
+            return;
+        }
+
+        throw new AccessDeniedHttpException('You can only view files from your department.');
+    }
+
+    private function assertCanMutateFile(User $user, RegistryFile $file): void
+    {
+        if ($user->isRegistrar()) {
+            return;
+        }
+
+        if ($user->role === User::ROLE_HOD
+            && $user->department_id
+            && (int) $file->department_id === (int) $user->department_id) {
+            return;
+        }
+
+        throw new AccessDeniedHttpException('You cannot change this file.');
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{0: int, 1: int}
+     */
+    private function resolveOwnership(User $user, array $data): array
+    {
+        if ($user->role === User::ROLE_HOD) {
+            if (! $user->department_id) {
+                throw ValidationException::withMessages([
+                    'department_id' => 'Your account is not linked to a department.',
+                ]);
+            }
+            $dept = Department::query()->findOrFail($user->department_id);
+
+            return [(int) $dept->id, (int) $dept->office_id];
+        }
+
+        $departmentId = $data['department_id'] ?? null;
+        if (! $departmentId) {
+            throw ValidationException::withMessages([
+                'department_id' => 'Choose the department this file belongs to.',
+            ]);
+        }
+
+        $dept = Department::query()->findOrFail($departmentId);
+        $officeId = ! empty($data['office_id']) ? (int) $data['office_id'] : (int) $dept->office_id;
+        if ((int) $dept->office_id !== $officeId) {
+            throw ValidationException::withMessages([
+                'department_id' => 'Department does not belong to the selected region.',
+            ]);
+        }
+
+        return [(int) $dept->id, $officeId];
     }
 }
