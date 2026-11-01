@@ -15,8 +15,10 @@ type RegistryFile = {
   status: string
   notes?: string | null
   office_id?: number | null
+  department_id?: number | null
   documents_count?: number
   office?: { name: string } | null
+  department?: { name: string } | null
   creator?: { name: string } | null
   closed_at?: string | null
   retrieved_at?: string | null
@@ -27,6 +29,8 @@ export function FileDetailPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const isRegistry = user?.role === 'registrar' || user?.role === 'admin'
+  const canManage = isRegistry || user?.role === 'hod'
+  const showDepartment = isRegistry || user?.role === 'senior_manager' || user?.role === 'admin'
   const [file, setFile] = useState<RegistryFile | null>(null)
   const [docs, setDocs] = useState<MailDoc[]>([])
   const [regions, setRegions] = useState<Region[]>([])
@@ -154,11 +158,12 @@ export function FileDetailPage() {
             <span style={{ textTransform: 'capitalize' }}>{file.status}</span>
             {' · '}
             {file.documents_count ?? docs.length} document{(file.documents_count ?? docs.length) === 1 ? '' : 's'}
+            {file.department?.name ? ` · ${file.department.name}` : ''}
             {file.office?.name ? ` · ${file.office.name}` : ''}
           </p>
           {file.notes && <p className="muted">{file.notes}</p>}
         </div>
-        {isRegistry && (
+        {canManage && (
           <div className="directory-actions">
             <IconButton
               aria-label="Edit file details"
@@ -201,7 +206,7 @@ export function FileDetailPage() {
 
       {error && <p className="error-text">{error}</p>}
 
-      <MailTable docs={docs} empty="No documents in this file yet." />
+      <MailTable docs={docs} empty="No documents in this file yet." showDepartment={showDepartment} />
 
       {editing && (
         <div className="directory-backdrop" role="dialog" aria-modal="true">
