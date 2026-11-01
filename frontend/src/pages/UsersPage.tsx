@@ -6,8 +6,7 @@ import { StatusToast } from '../components/Toast'
 import './directory.css'
 
 type Region = { id: number; name: string }
-type Station = { id: number; name: string; office_id: number }
-type Dept = { id: number; name: string; station_id?: number | null }
+type Dept = { id: number; name: string; office_id?: number }
 
 type U = {
   id: number
@@ -17,11 +16,9 @@ type U = {
   role: string
   active: boolean
   office_id?: number | null
-  station_id?: number | null
   department_id?: number | null
   office?: Region | null
-  station?: { name: string } | null
-  department?: { name: string } | null
+  department?: { id?: number; name: string } | null
   has_signature?: boolean
 }
 
@@ -31,32 +28,28 @@ const emptyForm = {
   phone: '',
   role: 'staff',
   office_id: '' as number | '',
-  station_id: '' as number | '',
   department_id: '' as number | '',
   password: '',
   active: true,
 }
 
-const roles = [
+const allRoles = [
   { value: 'staff', label: 'Staff' },
   { value: 'hod', label: 'Head of Department' },
-  { value: 'station_supervisor', label: 'Station supervisor' },
-  { value: 'hos', label: 'Head of Station' },
   { value: 'senior_manager', label: 'Senior manager' },
   { value: 'registrar', label: 'Registry' },
   { value: 'admin', label: 'Admin' },
 ]
 
-const needsStation = (role: string) =>
-  role === 'staff' || role === 'hod' || role === 'hos' || role === 'station_supervisor'
 const needsDepartment = (role: string) => role === 'staff' || role === 'hod'
 
 export function UsersPage() {
   const { user: me } = useAuth()
   const isAdmin = me?.role === 'admin'
+  const isHod = me?.role === 'hod'
+  const isElevated = me?.role === 'registrar' || me?.role === 'admin'
   const [users, setUsers] = useState<U[]>([])
   const [regions, setRegions] = useState<Region[]>([])
-  const [stations, setStations] = useState<Station[]>([])
   const [departments, setDepartments] = useState<Dept[]>([])
   const [error, setError] = useState('')
   const [tempPw, setTempPw] = useState('')
@@ -67,17 +60,23 @@ export function UsersPage() {
   const [signatureFile, setSignatureFile] = useState<File | null>(null)
   const [signatureNote, setSignatureNote] = useState('')
 
+  const roles = isHod ? allRoles.filter((r) => r.value === 'staff') : allRoles
+
   async function load() {
-    const [userRes, officeRes, stationRes, deptRes] = await Promise.all([
+    const [userRes, officeRes, deptRes] = await Promise.all([
       api<{ users: U[] }>('/registry/users'),
       api<{ offices: Region[] }>('/offices'),
-      api<{ stations: Station[] }>('/stations'),
       api<{ departments: Dept[] }>('/departments'),
     ])
     setUsers((userRes.users || []).filter((u) => u.active !== false || !u.name.includes('(deleted)')))
     setRegions(officeRes.offices || [])
-    setStations(stationRes.stations || [])
-    setDepartments(deptRes.departments || [])
+    setDepartments(
+      (deptRes.departments || []).map((d) => ({
+        ...d,
+        id: Number(d.id),
+        office_id: d.office_id == null ? undefined : Number(d.office_id),
+      })),
+    )
   }
 
   useEffect(() => {
@@ -87,7 +86,12 @@ export function UsersPage() {
   function openCreate() {
     setCreating(true)
     setEditing(null)
-    setForm(emptyForm)
+    setForm({
+      ...emptyForm,
+      role: 'staff',
+      office_id: isHod && me?.office_id ? me.office_id : '',
+      department_id: isHod && me?.department_id ? me.department_id : '',
+    })
     setSignatureFile(null)
     setSignatureNote('')
     setError('')
@@ -96,14 +100,15 @@ export function UsersPage() {
   function openEdit(u: U) {
     setEditing(u)
     setCreating(false)
+    const officeId = u.office_id ?? u.office?.id
+    const departmentId = u.department_id ?? u.department?.id
     setForm({
       name: u.name,
       email: u.email,
       phone: u.phone || '',
       role: u.role,
-      office_id: u.office_id ?? u.office?.id ?? '',
-      station_id: u.station_id ?? '',
-      department_id: u.department_id ?? '',
+      office_id: officeId != null && officeId !== '' ? Number(officeId) : '',
+      department_id: departmentId != null && departmentId !== '' ? Number(departmentId) : '',
       password: '',
       active: u.active,
     })
@@ -122,10 +127,13 @@ export function UsersPage() {
       name: form.name,
       email: form.email,
       phone: form.phone,
-      role: form.role,
+      role: isHod ? 'staff' : form.role,
       office_id: form.office_id,
-      station_id: needsStation(form.role) ? form.station_id || null : null,
-      department_id: needsDepartment(form.role) ? form.department_id || null : null,
+      department_id: needsDepartment(isHod ? 'staff' : form.role) ? form.department_id || null : null,
+    }
+    if (isHod && me?.department_id) {
+      body.department_id = me.department_id
+      // office_id still required by API — use form or first region as fallback filled on create
     }
     return body
   }
@@ -148,12 +156,19 @@ export function UsersPage() {
 
   async function onCreate(e: FormEvent) {
     e.preventDefault()
-    if (!form.office_id) return
+    if (!isHod && !form.office_id) return
     setError('')
     setTempPw('')
     setSaving(true)
     try {
       const body = payload()
+      if (isHod) {
+        // API overwrites office/department from HoD; send placeholders if missing
+        if (!body.office_id) {
+          const dept = departments.find((d) => d.id === me?.department_id)
+          body.office_id = dept?.office_id || regions[0]?.id || ''
+        }
+      }
       if (form.password) body.password = form.password
       const res = await api<{ temporary_password: string; user: U }>('/registry/users', {
         method: 'POST',
@@ -174,11 +189,14 @@ export function UsersPage() {
 
   async function onSaveEdit(e: FormEvent) {
     e.preventDefault()
-    if (!editing || !form.office_id) return
+    if (!editing || (!isHod && !form.office_id)) return
     setSaving(true)
     setError('')
     try {
       const body = payload()
+      if (isHod && !body.office_id) {
+        body.office_id = editing.office_id || regions[0]?.id || ''
+      }
       body.active = form.active
       if (form.password.trim()) body.password = form.password.trim()
       await api(`/registry/users/${editing.id}`, {
@@ -210,15 +228,24 @@ export function UsersPage() {
 
   const visible = users.filter((u) => u.active && !u.name.endsWith('(deleted)'))
   const modalOpen = creating || editing !== null
-  const regionStations = stations.filter((s) => s.office_id === form.office_id)
-  const stationDepartments = departments.filter((d) => d.station_id === form.station_id)
+  const regionDepartments = departments.filter(
+    (d) => form.office_id !== '' && Number(d.office_id) === Number(form.office_id),
+  )
+
+  if (!isElevated && !isHod) {
+    return <p className="error-text">You do not have access to staff administration.</p>
+  }
 
   return (
     <div className="directory-page">
       <header className="directory-header">
         <div>
-          <h1>Staff</h1>
-          <p className="muted">Region, station, department, and role decide where shared mail goes.</p>
+          <h1>{isHod ? 'Department staff' : 'Staff'}</h1>
+          <p className="muted">
+            {isHod
+              ? 'Add or remove staff in your department.'
+              : 'Region, department, and role decide where shared mail goes.'}
+          </p>
         </div>
         <button className="btn btn-primary" type="button" onClick={openCreate}>
           Add staff
@@ -236,7 +263,6 @@ export function UsersPage() {
               <th>Email</th>
               <th>Role</th>
               <th>Region</th>
-              <th>Station</th>
               <th>Department</th>
               <th>Actions</th>
             </tr>
@@ -244,7 +270,7 @@ export function UsersPage() {
           <tbody>
             {visible.length === 0 && (
               <tr>
-                <td className="directory-empty" colSpan={7}>
+                <td className="directory-empty" colSpan={6}>
                   No staff yet.
                 </td>
               </tr>
@@ -255,7 +281,6 @@ export function UsersPage() {
                 <td>{u.email}</td>
                 <td>{u.role.replaceAll('_', ' ')}</td>
                 <td>{u.office?.name || '—'}</td>
-                <td>{u.station?.name || '—'}</td>
                 <td>{u.department?.name || '—'}</td>
                 <td className="directory-actions">
                   <IconButton aria-label={`Edit ${u.name}`} title="Edit" onClick={() => openEdit(u)}>
@@ -308,74 +333,74 @@ export function UsersPage() {
                 <label>Phone</label>
                 <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               </div>
-              <div className="field">
-                <label>Role</label>
-                <select
-                  value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value, station_id: '', department_id: '' })}
-                >
-                  {roles.map((role) => (
-                    <option key={role.value} value={role.value}>
-                      {role.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="field">
-                <label>Region</label>
-                <select
-                  value={form.office_id}
-                  onChange={(e) =>
-                    setForm({ ...form, office_id: Number(e.target.value), station_id: '', department_id: '' })
-                  }
-                  required
-                >
-                  <option value="" disabled>
-                    Select region
-                  </option>
-                  {regions.map((region) => (
-                    <option key={region.id} value={region.id}>
-                      {region.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {needsStation(form.role) && (
+              {!isHod && (
                 <div className="field">
-                  <label>Station</label>
+                  <label>Role</label>
                   <select
-                    value={form.station_id}
-                    onChange={(e) => setForm({ ...form, station_id: Number(e.target.value), department_id: '' })}
-                    required
+                    value={form.role}
+                    onChange={(e) => setForm({ ...form, role: e.target.value, department_id: '' })}
                   >
-                    <option value="" disabled>
-                      Select station
-                    </option>
-                    {regionStations.map((station) => (
-                      <option key={station.id} value={station.id}>
-                        {station.name}
+                    {roles.map((role) => (
+                      <option key={role.value} value={role.value}>
+                        {role.label}
                       </option>
                     ))}
                   </select>
                 </div>
               )}
-              {needsDepartment(form.role) && (
+              {!isHod && (
                 <div className="field">
-                  <label>Department</label>
+                  <label>Region</label>
                   <select
-                    value={form.department_id}
-                    onChange={(e) => setForm({ ...form, department_id: Number(e.target.value) })}
+                    value={form.office_id === '' ? '' : String(form.office_id)}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        office_id: e.target.value ? Number(e.target.value) : '',
+                        department_id: '',
+                      })
+                    }
                     required
                   >
                     <option value="" disabled>
-                      Select department
+                      Select region
                     </option>
-                    {stationDepartments.map((dept) => (
-                      <option key={dept.id} value={dept.id}>
+                    {regions.map((region) => (
+                      <option key={region.id} value={String(region.id)}>
+                        {region.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {!isHod && needsDepartment(form.role) && (
+                <div className="field">
+                  <label>Department</label>
+                  <select
+                    value={form.department_id === '' ? '' : String(form.department_id)}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        department_id: e.target.value ? Number(e.target.value) : '',
+                      })
+                    }
+                    required
+                  >
+                    <option value="" disabled>
+                      {regionDepartments.length ? 'Select department' : 'No departments in this region'}
+                    </option>
+                    {regionDepartments.map((dept) => (
+                      <option key={dept.id} value={String(dept.id)}>
                         {dept.name}
                       </option>
                     ))}
                   </select>
+                </div>
+              )}
+              {isHod && (
+                <div className="field">
+                  <label>Department</label>
+                  <input value={me?.department_name || 'Your department'} readOnly />
                 </div>
               )}
               <div className="field">
@@ -412,7 +437,11 @@ export function UsersPage() {
               </label>
             )}
             <div className="directory-modal-actions">
-              <button className="btn btn-primary" type="submit" disabled={saving || regions.length === 0}>
+              <button
+                className="btn btn-primary"
+                type="submit"
+                disabled={saving || (!isHod && regions.length === 0)}
+              >
                 {saving ? 'Saving…' : editing ? 'Save changes' : 'Add staff'}
               </button>
               {editing && (
