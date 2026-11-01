@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { useAuth } from '../auth/AuthContext'
 import { MailTable, type MailDoc } from '../components/MailTable'
 import { StatusToast } from '../components/Toast'
 import './InboxPage.css'
 
 export function InboxPage({ box = 'inbox' }: { box?: 'inbox' | 'preview' | 'archive' }) {
+  const { user } = useAuth()
   const [docs, setDocs] = useState<MailDoc[]>([])
   const [error, setError] = useState('')
+  const showDepartment =
+    user?.role === 'registrar' || user?.role === 'admin' || user?.role === 'senior_manager'
 
   const title = box === 'preview' ? 'Preview Box' : box === 'archive' ? 'Archives' : 'Inbox'
   const blurb =
@@ -32,7 +36,7 @@ export function InboxPage({ box = 'inbox' }: { box?: 'inbox' | 'preview' | 'arch
         <p className="muted">{blurb}</p>
       </header>
       {error && <p className="error-text">{error}</p>}
-      <MailTable docs={docs} empty={empty} />
+      <MailTable docs={docs} empty={empty} showDepartment={showDepartment} />
     </div>
   )
 }
