@@ -8,6 +8,7 @@ import './directory.css'
 import './InboxPage.css'
 
 type Region = { id: number; name: string }
+type Dept = { id: number; name: string; office_id?: number }
 
 type RegistryFile = {
   id: number
@@ -16,19 +17,31 @@ type RegistryFile = {
   status: string
   notes?: string | null
   office_id?: number | null
+  department_id?: number | null
   documents_count?: number
   office?: { name: string } | null
+  department?: { name: string } | null
   closed_at?: string | null
   retrieved_at?: string | null
 }
 
-const emptyForm = { number: '', name: '', notes: '', office_id: '' as number | '' }
+const emptyForm = {
+  number: '',
+  name: '',
+  notes: '',
+  office_id: '' as number | '',
+  department_id: '' as number | '',
+}
 
 export function FilesPage() {
   const { user } = useAuth()
   const isRegistry = user?.role === 'registrar' || user?.role === 'admin'
+  const isHod = user?.role === 'hod'
+  const canManage = isRegistry || isHod
+  const seesAll = isRegistry || user?.role === 'senior_manager'
   const [files, setFiles] = useState<RegistryFile[]>([])
   const [regions, setRegions] = useState<Region[]>([])
+  const [departments, setDepartments] = useState<Dept[]>([])
   const [status, setStatus] = useState<'all' | 'open' | 'archived'>('open')
   const [q, setQ] = useState('')
   const [error, setError] = useState('')
@@ -52,6 +65,17 @@ export function FilesPage() {
   useEffect(() => {
     api<{ offices: Region[] }>('/offices')
       .then((r) => setRegions(r.offices || []))
+      .catch(() => undefined)
+    api<{ departments: Dept[] }>('/departments')
+      .then((r) =>
+        setDepartments(
+          (r.departments || []).map((d) => ({
+            ...d,
+            id: Number(d.id),
+            office_id: d.office_id == null ? undefined : Number(d.office_id),
+          })),
+        ),
+      )
       .catch(() => undefined)
   }, [])
 
@@ -82,7 +106,8 @@ export function FilesPage() {
           number: form.number,
           name: form.name,
           notes: form.notes || null,
-          office_id: form.office_id || null,
+          office_id: isHod ? null : form.office_id || null,
+          department_id: isHod ? user?.department_id : form.department_id || null,
         }),
       })
       closeModal()
@@ -106,7 +131,8 @@ export function FilesPage() {
           number: form.number,
           name: form.name,
           notes: form.notes || null,
-          office_id: form.office_id || null,
+          office_id: isHod ? undefined : form.office_id || null,
+          department_id: isHod ? undefined : form.department_id || null,
         }),
       })
       closeModal()
@@ -137,6 +163,9 @@ export function FilesPage() {
 
   const modalOpen = creating || editing !== null
   const { page, setPage, slice, total, pageSize } = usePagedRows(files)
+  const regionDepartments = departments.filter(
+    (d) => form.office_id !== '' && Number(d.office_id) === Number(form.office_id),
+  )
 
   return (
     <div className="directory-page">
@@ -144,21 +173,26 @@ export function FilesPage() {
         <div>
           <h1>Files</h1>
           <p className="muted">
-            A file has a number and a name, and holds related mail. Open a file to see every document in it.
+            {seesAll
+              ? 'All department files. Each file has a number and name and holds related mail.'
+              : 'Files for your department. Open a file to see every document in it.'}
           </p>
         </div>
-        {isRegistry && (
+        {canManage && (
           <button
             className="btn btn-primary"
             type="button"
             onClick={() => {
               setEditing(null)
-              setForm(emptyForm)
+              setForm({
+                ...emptyForm,
+                department_id: isHod ? user?.department_id || '' : '',
+              })
               setCreating(true)
               setError('')
             }}
           >
-            Open new file
+            Register new file
           </button>
         )}
       </header>
@@ -203,6 +237,7 @@ export function FilesPage() {
                 <th>File name</th>
                 <th>Documents</th>
                 <th>Status</th>
+                {seesAll && <th>Department</th>}
                 <th>Region</th>
                 <th />
               </tr>
@@ -214,11 +249,12 @@ export function FilesPage() {
                   <td>{file.name}</td>
                   <td>{file.documents_count ?? 0}</td>
                   <td style={{ textTransform: 'capitalize' }}>{file.status}</td>
+                  {seesAll && <td>{file.department?.name || '—'}</td>}
                   <td>{file.office?.name || '—'}</td>
                   <td>
                     <div className="directory-actions">
                       <Link to={`/files/${file.id}`}>Open</Link>
-                      {isRegistry && (
+                      {canManage && (
                         <>
                           <IconButton
                             aria-label={`Edit ${file.number}`}
@@ -231,6 +267,7 @@ export function FilesPage() {
                                 name: file.name,
                                 notes: file.notes || '',
                                 office_id: file.office_id ?? '',
+                                department_id: file.department_id ?? '',
                               })
                               setError('')
                             }}
@@ -286,24 +323,62 @@ export function FilesPage() {
                   required
                 />
               </div>
-              <div className="field">
-                <label htmlFor="file-region">Region</label>
-                <select
-                  id="file-region"
-                  value={form.office_id}
-                  onChange={(e) => setForm({ ...form, office_id: Number(e.target.value) })}
-                  required
-                >
-                  <option value="" disabled>
-                    Select region
-                  </option>
-                  {regions.map((region) => (
-                    <option key={region.id} value={region.id}>
-                      {region.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {isHod ? (
+                <div className="field">
+                  <label>Department</label>
+                  <input value={user?.department_name || 'Your department'} readOnly />
+                </div>
+              ) : (
+                <>
+                  <div className="field">
+                    <label htmlFor="file-region">Region</label>
+                    <select
+                      id="file-region"
+                      value={form.office_id === '' ? '' : String(form.office_id)}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          office_id: e.target.value ? Number(e.target.value) : '',
+                          department_id: '',
+                        })
+                      }
+                      required
+                    >
+                      <option value="" disabled>
+                        Select region
+                      </option>
+                      {regions.map((region) => (
+                        <option key={region.id} value={String(region.id)}>
+                          {region.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label htmlFor="file-dept">Department</label>
+                    <select
+                      id="file-dept"
+                      value={form.department_id === '' ? '' : String(form.department_id)}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          department_id: e.target.value ? Number(e.target.value) : '',
+                        })
+                      }
+                      required
+                    >
+                      <option value="" disabled>
+                        {regionDepartments.length ? 'Select department' : 'No departments in this region'}
+                      </option>
+                      {regionDepartments.map((dept) => (
+                        <option key={dept.id} value={String(dept.id)}>
+                          {dept.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
               <div className="field">
                 <label htmlFor="file-notes">Notes</label>
                 <textarea
