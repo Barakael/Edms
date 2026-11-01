@@ -17,8 +17,8 @@ return [
         'api_key' => env('SMS_API_KEY'),
         'api_secret' => env('SMS_API_SECRET', env('SMS_SECRET_KEY')),
         'api_url' => rtrim((string) env('SMS_API_URL', 'https://sms.ehub.co.tz/api/v1'), '/'),
-        'sender_id' => env('EHUB_SENDER_ID'),
-        'from' => env('SMS_FROM'),
+        'sender_id' => env('EHUB_SENDER_ID', 'HABARI'),
+        'from' => env('SMS_FROM', 'HABARI'),
         'country_code' => env('SMS_COUNTRY_CODE', '255'),
     ],
 ];
