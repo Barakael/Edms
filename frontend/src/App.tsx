@@ -8,6 +8,7 @@ import { DepartmentsPage } from './pages/DepartmentsPage'
 import { DocumentDetailPage } from './pages/DocumentDetailPage'
 import { DownloadAccessPage } from './pages/DownloadAccessPage'
 import { DownloadRequestsPage } from './pages/DownloadRequestsPage'
+import { BulkUploadsPage } from './pages/BulkUploadsPage'
 import { EmailDraftsPage } from './pages/EmailDraftsPage'
 import { FileDetailPage } from './pages/FileDetailPage'
 import { FilesPage } from './pages/FilesPage'
@@ -20,7 +21,6 @@ import { SearchPage } from './pages/SearchPage'
 import { SignPadPage } from './pages/SignPadPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { SignaturePage } from './pages/SignaturePage'
-import { StationsPage } from './pages/StationsPage'
 import { SubmitPage } from './pages/SubmitPage'
 import { RolesPage } from './pages/RolesPage'
 import { UsersPage } from './pages/UsersPage'
@@ -56,10 +56,11 @@ export default function App() {
           <Route path="register" element={<RegisterPage />} />
           <Route path="submit" element={<SubmitPage />} />
           <Route path="email-drafts" element={<EmailDraftsPage />} />
+          <Route path="bulk-uploads" element={<BulkUploadsPage />} />
           <Route path="departments" element={<DepartmentsPage />} />
           <Route path="regions" element={<RegionsPage />} />
           <Route path="branches" element={<Navigate to="/regions" replace />} />
-          <Route path="stations" element={<StationsPage />} />
+          <Route path="stations" element={<Navigate to="/departments" replace />} />
           <Route path="staff" element={<UsersPage />} />
           <Route path="users" element={<Navigate to="/staff" replace />} />
           <Route path="roles" element={<RolesPage />} />
