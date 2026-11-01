@@ -35,6 +35,9 @@ class Document extends Model
 
     public const BOX_ARCHIVE = 'archive';
 
+    /** Staging queue for folder-watch / bulk triage (registry only). */
+    public const BOX_BULK = 'bulk';
+
     protected $fillable = [
         'status',
         'box',
