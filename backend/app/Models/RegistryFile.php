@@ -17,6 +17,7 @@ class RegistryFile extends Model
         'name',
         'status',
         'office_id',
+        'department_id',
         'created_by',
         'notes',
         'closed_at',
@@ -34,6 +35,11 @@ class RegistryFile extends Model
     public function office(): BelongsTo
     {
         return $this->belongsTo(Office::class);
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
     }
 
     public function creator(): BelongsTo
