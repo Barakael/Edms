@@ -64,7 +64,11 @@ export function DocumentDetailPage() {
   const [assigneeId, setAssigneeId] = useState('')
   const [comment, setComment] = useState('')
   const [commentFile, setCommentFile] = useState<File | null>(null)
+  const [commentOpen, setCommentOpen] = useState(false)
+  const [directDeptId, setDirectDeptId] = useState('')
+  const [departments, setDepartments] = useState<Array<{ id: number; name: string }>>([])
   const commentFileRef = useRef<HTMLInputElement>(null)
+  const commentBarRef = useRef<HTMLFormElement>(null)
   const [placeMode, setPlaceMode] = useState(false)
   const [dragSign, setDragSign] = useState(false)
   const [otpOpen, setOtpOpen] = useState(false)
@@ -79,11 +83,8 @@ export function DocumentDetailPage() {
   const isAssignee = user && doc && user.id === doc.current_assignee_id
   const isRegistry = user?.role === 'registrar' || user?.role === 'admin'
   const isSenior = user?.role === 'senior_manager'
-  const sharesUp =
-    user?.role === 'staff' ||
-    user?.role === 'hod' ||
-    user?.role === 'hos' ||
-    user?.role === 'station_supervisor'
+  const sharesUp = user?.role === 'staff' || user?.role === 'hod'
+  const isHod = user?.role === 'hod'
   const archived = doc?.box === 'archive' || doc?.status === 'closed'
   const locked = Boolean(doc?.locked_at)
   const canDownload = Boolean(data?.can_download)
@@ -108,7 +109,12 @@ export function DocumentDetailPage() {
     api<{ signature: { ink_data: string } | null }>('/signature')
       .then((r) => setSignatureInk(r.signature?.ink_data || null))
       .catch(() => undefined)
-  }, [id])
+    if (user?.role === 'hod') {
+      api<{ departments: Array<{ id: number; name: string }> }>('/departments')
+        .then((r) => setDepartments((r.departments || []).filter((d) => d.id !== user.department_id)))
+        .catch(() => undefined)
+    }
+  }, [id, user?.role, user?.department_id])
 
   async function assign(e: FormEvent) {
     e.preventDefault()
@@ -131,6 +137,22 @@ export function DocumentDetailPage() {
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Share failed')
+    }
+  }
+
+  async function directToDepartment(e: FormEvent) {
+    e.preventDefault()
+    if (!directDeptId) return
+    setError('')
+    try {
+      await api(`/documents/${id}/assign`, {
+        method: 'POST',
+        body: JSON.stringify({ department_id: Number(directDeptId) }),
+      })
+      setDirectDeptId('')
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not direct to department')
     }
   }
 
@@ -158,8 +180,9 @@ export function DocumentDetailPage() {
     }
   }
 
-  async function submitComment(e: FormEvent) {
-    e.preventDefault()
+  async function submitComment(e?: FormEvent) {
+    e?.preventDefault()
+    if (!comment.trim()) return
     try {
       const fd = new FormData()
       fd.set('body', comment)
@@ -167,6 +190,7 @@ export function DocumentDetailPage() {
       await api(`/documents/${id}/comments`, { method: 'POST', body: fd })
       setComment('')
       setCommentFile(null)
+      setCommentOpen(false)
       if (commentFileRef.current) commentFileRef.current.value = ''
       await load()
     } catch (err) {
@@ -514,15 +538,17 @@ export function DocumentDetailPage() {
           <div className="doc-feed-row">
             <div className="doc-feed-col">
               <ExpandableList
-                title="Comments"
+                title="Minutes"
                 items={[...doc.comments].reverse()}
                 pageSize={4}
-                emptyText="No comments yet."
+                emptyText="No minutes yet."
                 getKey={(c) => c.id}
                 renderItem={(c) => (
                   <div className="doc-comment-item">
                     <strong className="doc-comment-author">{c.user?.name}</strong>
-                    <div className="doc-comment-body">{c.body}</div>
+                    <div className="doc-comment-body" style={{ whiteSpace: 'pre-wrap' }}>
+                      {c.body}
+                    </div>
                     {c.attachments?.map((file) => (
                       <div key={file.id} className="doc-comment-attachment">
                         Attachment: {file.original_filename}
@@ -535,10 +561,14 @@ export function DocumentDetailPage() {
                 )}
               />
               <button type="button" className="doc-comments-pdf" onClick={() => void downloadComments()}>
-                Download comments PDF
+                Download Minutes PDF
               </button>
               {(isAssignee || isRegistry || isSenior || doc.box === 'preview' || doc.box === 'archive') && (
-                <form className="doc-comment-bar" onSubmit={submitComment}>
+                <form
+                  ref={commentBarRef}
+                  className={`doc-comment-bar${commentOpen ? ' is-open' : ''}`}
+                  onSubmit={(e) => void submitComment(e)}
+                >
                   <input
                     ref={commentFileRef}
                     id="comment-file"
@@ -584,10 +614,15 @@ export function DocumentDetailPage() {
                       id="comment"
                       className="doc-comment-input"
                       value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                      placeholder="Write a comment"
+                      onChange={(e) => {
+                        setComment(e.target.value)
+                        if (!commentOpen) setCommentOpen(true)
+                      }}
+                      onFocus={() => setCommentOpen(true)}
+                      placeholder="Write a minute…"
                       aria-label="Comment"
-                      required
+                      readOnly={commentOpen}
+                      onClick={() => setCommentOpen(true)}
                     />
                     <button
                       className="doc-comment-send"
@@ -607,6 +642,43 @@ export function DocumentDetailPage() {
                       </svg>
                     </button>
                   </div>
+                  {commentOpen && (
+                    <div className="doc-comment-popover" role="dialog" aria-label="Write minute">
+                      <textarea
+                        className="doc-comment-textarea"
+                        value={comment}
+                        autoFocus
+                        rows={5}
+                        maxLength={5000}
+                        placeholder="Write a longer minute. Line breaks are kept."
+                        onChange={(e) => setComment(e.target.value)}
+                        onKeyDown={(e) => {
+                          if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                            e.preventDefault()
+                            void submitComment()
+                          }
+                          if (e.key === 'Escape') setCommentOpen(false)
+                        }}
+                      />
+                      <div className="doc-comment-popover-actions">
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={() => setCommentOpen(false)}
+                        >
+                          Close
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          disabled={!comment.trim()}
+                          onClick={() => void submitComment()}
+                        >
+                          Send
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </form>
               )}
             </div>
@@ -703,16 +775,42 @@ export function DocumentDetailPage() {
             <div className="panel doc-aside-panel">
               <h3>Share</h3>
               <p className="muted">
-                {user?.role === 'hos'
-                  ? 'This mail goes to your region Preview Box.'
-                  : user?.role === 'hod' || user?.role === 'station_supervisor'
-                    ? 'This mail goes to your Head of Station inbox.'
-                    : 'This mail goes to your Head of Department, or Head of Station if there is no HoD.'}
+                {isHod
+                  ? 'Send this mail to the Preview Box for registry and senior managers.'
+                  : 'This mail goes to your Head of Department.'}
               </p>
               <button className="btn btn-primary" type="button" disabled={locked} onClick={() => void shareUp()}>
-                Share
+                {isHod ? 'Send to Preview Box' : 'Share'}
               </button>
             </div>
+          )}
+
+          {isAssignee && isHod && !archived && (
+            <form className="panel doc-aside-panel" onSubmit={(e) => void directToDepartment(e)}>
+              <h3>Direct to department</h3>
+              <p className="muted">Send this mail to another department’s Head of Department.</p>
+              <div className="field">
+                <label htmlFor="direct-dept">Department</label>
+                <select
+                  id="direct-dept"
+                  value={directDeptId}
+                  onChange={(e) => setDirectDeptId(e.target.value)}
+                  required
+                >
+                  <option value="" disabled>
+                    Select department
+                  </option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button className="btn btn-primary" type="submit" disabled={locked || !directDeptId}>
+                Direct
+              </button>
+            </form>
           )}
 
           {(isAssignee || isRegistry || isSenior) && !archived && (
