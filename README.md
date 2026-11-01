@@ -1,4 +1,4 @@
-# EDMS — Electronic Document Management System
+# rDMS-HQ — Records & Document Management System
 
 React + TypeScript frontend, Laravel API (PHP **≥ 8.4.27** / **≥ 8.5.12** patched builds), MySQL.
 
@@ -35,11 +35,13 @@ Open http://localhost:5173 (proxies `/api` → `:8000`).
 
 | Email | Role |
 | --- | --- |
-| registrar@edms.local | Registrar |
-| officer@edms.local | Action officer |
-| officer2@edms.local | Action officer |
-| director@edms.local | Director |
-| member@edms.local | Member (submit to registry) |
+| it@tazama.co.tz | System admin |
+| registrar@edms.local | Registry |
+| officer@edms.local | Staff |
+| officer2@edms.local | Staff |
+| director@edms.local | Senior manager |
+| member@edms.local | Staff |
+| hod@edms.local | Head of department |
 
 See also [`docs/mail-ingest.md`](docs/mail-ingest.md) for inbound mail behaviour and gaps.
 
