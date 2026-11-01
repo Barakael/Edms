@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Department;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
 
@@ -30,70 +31,41 @@ class MailRoutingService
 
     public function findHeadOfDepartment(User $member): ?User
     {
-        return $this->hodFor($member);
+        return $this->hodForDepartmentId($member->department_id ? (int) $member->department_id : null);
     }
 
-    /**
-     * Head of Station who receives an internal memo from a station supervisor.
-     */
-    public function headOfStation(User $member): User
+    public function headOfDepartmentById(int $departmentId): User
     {
-        if (! $member->station_id) {
+        $hod = $this->hodForDepartmentId($departmentId);
+        if (! $hod) {
             throw ValidationException::withMessages([
-                'station_id' => 'Your account is not linked to a station.',
+                'department_id' => 'No Head of Department is set for that department.',
             ]);
         }
 
-        $hos = $this->findHeadOfStation($member);
-        if (! $hos) {
-            throw ValidationException::withMessages([
-                'station_id' => 'No Head of Station is set for your station.',
-            ]);
-        }
-
-        return $hos;
-    }
-
-    public function findHeadOfStation(User $member): ?User
-    {
-        return $this->hosFor($member);
+        return $hod;
     }
 
     /**
-     * Next desk when the current holder shares along the region hierarchy.
+     * Next desk when the current holder shares along the hierarchy.
+     * Staff → HoD inbox; HoD → Preview Box for registry.
      *
      * @return array{box: string, user: ?User, office_id: ?int}
      */
     public function nextHolder(User $sender): array
     {
         if ($sender->role === User::ROLE_STAFF) {
-            $hod = $this->hodFor($sender);
-            if ($hod) {
-                return ['box' => 'inbox', 'user' => $hod, 'office_id' => $hod->office_id];
-            }
-
-            $hos = $this->hosFor($sender);
-            if (! $hos) {
+            $hod = $this->hodForDepartmentId($sender->department_id ? (int) $sender->department_id : null);
+            if (! $hod) {
                 throw ValidationException::withMessages([
-                    'share' => 'No Head of Department or Head of Station is set for your station.',
+                    'share' => 'No Head of Department is set for your department.',
                 ]);
             }
 
-            return ['box' => 'inbox', 'user' => $hos, 'office_id' => $hos->office_id];
+            return ['box' => 'inbox', 'user' => $hod, 'office_id' => $hod->office_id];
         }
 
-        if ($sender->role === User::ROLE_HOD || $sender->role === User::ROLE_STATION_SUPERVISOR) {
-            $hos = $this->hosFor($sender);
-            if (! $hos) {
-                throw ValidationException::withMessages([
-                    'share' => 'No Head of Station is set for your station.',
-                ]);
-            }
-
-            return ['box' => 'inbox', 'user' => $hos, 'office_id' => $hos->office_id];
-        }
-
-        if ($sender->role === User::ROLE_HOS) {
+        if ($sender->role === User::ROLE_HOD) {
             if (! $sender->office_id) {
                 throw ValidationException::withMessages([
                     'share' => 'Your account is not linked to a region.',
@@ -108,29 +80,39 @@ class MailRoutingService
         ]);
     }
 
-    private function hodFor(User $sender): ?User
+    /**
+     * Direct mail to another department's HoD.
+     *
+     * @return array{box: string, user: User, office_id: ?int, department: Department}
+     */
+    public function directToDepartment(int $departmentId): array
     {
-        if (! $sender->department_id) {
+        $department = Department::query()->where('active', true)->find($departmentId);
+        if (! $department) {
+            throw ValidationException::withMessages([
+                'department_id' => 'Choose an active department.',
+            ]);
+        }
+
+        $hod = $this->headOfDepartmentById((int) $department->id);
+
+        return [
+            'box' => 'inbox',
+            'user' => $hod,
+            'office_id' => $hod->office_id ?: $department->office_id,
+            'department' => $department,
+        ];
+    }
+
+    private function hodForDepartmentId(?int $departmentId): ?User
+    {
+        if (! $departmentId) {
             return null;
         }
 
         return User::query()
             ->where('role', User::ROLE_HOD)
-            ->where('department_id', $sender->department_id)
-            ->where('active', true)
-            ->orderBy('id')
-            ->first();
-    }
-
-    private function hosFor(User $sender): ?User
-    {
-        if (! $sender->station_id) {
-            return null;
-        }
-
-        return User::query()
-            ->where('role', User::ROLE_HOS)
-            ->where('station_id', $sender->station_id)
+            ->where('department_id', $departmentId)
             ->where('active', true)
             ->orderBy('id')
             ->first();
