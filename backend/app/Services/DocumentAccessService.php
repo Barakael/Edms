@@ -37,13 +37,46 @@ class DocumentAccessService
             return true;
         }
 
+        if ($this->sameDepartment($user, $document)) {
+            return true;
+        }
+
+        if ($user->isSeniorManager() && $this->seesBranchBox($user, $document)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function sameDepartment(User $user, Document $document): bool
+    {
+        if (! $user->department_id) {
+            return false;
+        }
+
+        $document->loadMissing(['registration', 'registryFile']);
+
+        $regDept = $document->registration?->department_id;
+        if ($regDept && (int) $regDept === (int) $user->department_id) {
+            return true;
+        }
+
+        $fileDept = $document->registryFile?->department_id;
+        if ($fileDept && (int) $fileDept === (int) $user->department_id) {
+            return true;
+        }
+
         return false;
     }
 
     public function seesBranchBox(User $user, Document $document): bool
     {
-        if (! $user->isSeniorManager()) {
+        if (! $user->isSeniorManager() && ! $user->isRegistrar()) {
             return false;
+        }
+
+        if ($user->isRegistrar()) {
+            return true;
         }
 
         return $document->office_id === null || (int) $document->office_id === (int) $user->office_id;
@@ -126,6 +159,15 @@ class DocumentAccessService
         if (! $user->isRegistrar()) {
             throw new AccessDeniedHttpException('Registrar role required.');
         }
+    }
+
+    public function assertRegistrarOrHod(User $user): void
+    {
+        if ($user->isRegistrar() || $user->role === User::ROLE_HOD) {
+            return;
+        }
+
+        throw new AccessDeniedHttpException('Registry or Head of Department required.');
     }
 
     public function assertCanActOnWorkflow(User $user, Document $document): void
