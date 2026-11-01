@@ -6,38 +6,106 @@
   position: relative;
   padding: 1.5rem;
   overflow: auto;
+  color: #1e3a5f;
 }
 
 .login-wash {
   position: absolute;
   inset: 0;
+  overflow: hidden;
   background:
-    radial-gradient(ellipse 55% 45% at 12% 18%, rgba(59, 130, 246, 0.38), transparent 62%),
-    radial-gradient(ellipse 40% 36% at 92% 12%, rgba(239, 68, 68, 0.22), transparent 58%),
-    radial-gradient(ellipse 50% 40% at 80% 90%, rgba(37, 99, 235, 0.2), transparent 60%),
-    var(--color-night);
-  background-size: 140% 140%;
-  animation: night-drift 22s ease-in-out infinite;
+    radial-gradient(ellipse 58% 50% at 10% 16%, rgba(59, 130, 246, 0.38), transparent 60%),
+    radial-gradient(ellipse 42% 38% at 92% 10%, rgba(253, 230, 138, 0.38), transparent 56%),
+    radial-gradient(ellipse 48% 42% at 78% 86%, rgba(37, 99, 235, 0.22), transparent 58%),
+    radial-gradient(ellipse 40% 36% at 40% 70%, rgba(147, 197, 253, 0.35), transparent 55%),
+    linear-gradient(165deg, #ffffff 0%, #eef6ff 38%, #f8fbff 62%, #fff8e7 88%, #ffffff 100%);
   z-index: 0;
+}
+
+.login-wave {
+  position: absolute;
+  left: -5%;
+  width: 110%;
+  height: 42%;
+  bottom: -4%;
+  pointer-events: none;
+}
+
+.login-wave path {
+  fill: currentColor;
+}
+
+.login-wave-a {
+  color: rgba(37, 99, 235, 0.28);
+  bottom: -2%;
+  animation: wave-drift 18s ease-in-out infinite;
+}
+
+.login-wave-b {
+  color: rgba(253, 224, 71, 0.22);
+  bottom: 4%;
+  height: 36%;
+  animation: wave-drift 22s ease-in-out infinite reverse;
+}
+
+.login-wave-c {
+  color: rgba(96, 165, 250, 0.42);
+  bottom: 10%;
+  height: 30%;
+  animation: wave-drift 26s ease-in-out infinite;
 }
 
 .login-panel {
   position: relative;
   z-index: 1;
   width: min(420px, 100%);
-  padding: 2rem;
+  padding: 2rem 1.85rem 1.85rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.65rem;
+  border-radius: 18px;
+  border: 1px solid rgba(96, 165, 250, 0.65);
+  background: #ffffff;
   box-shadow:
-    var(--shadow-soft),
-    0 0 40px rgba(59, 130, 246, 0.12);
+    0 18px 40px rgba(37, 99, 235, 0.14),
+    0 0 0 1px rgba(147, 197, 253, 0.4);
 }
 
 .login-brand {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.9rem;
+}
+
+.login-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.login-brand-text h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #1d4ed8;
+  line-height: 1.05;
+}
+
+.login-brand-text p {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  color: #64748b;
+}
+
+.login-tagline {
+  margin: 0.15rem 0 0.35rem;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  color: #64748b;
 }
 
 .login-theme {
@@ -47,46 +115,50 @@
   z-index: 2;
 }
 
-.login-brand h1 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 2.2rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--color-brand-dark);
+.login-submit {
+  margin-top: 0.35rem;
 }
 
-.login-mark {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background:
-    radial-gradient(circle at 80% 18%, #ef4444 0 16%, transparent 17%),
-    linear-gradient(145deg, #60a5fa, #1d4ed8);
-  box-shadow: 0 0 18px rgba(59, 130, 246, 0.7);
-  animation: mark-glow 3.2s ease-in-out infinite;
+.login-page .field label {
+  color: #334155;
 }
 
-.login-panel .btn-primary {
-  margin-top: 0.5rem;
-  width: 100%;
+.login-page .field input {
+  background: #ffffff;
+  border-color: rgba(147, 197, 253, 0.7);
+  color: #0f172a;
 }
 
-@keyframes mark-glow {
+.login-page .field input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+
+.login-page .btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+}
+
+.login-page .btn-primary:hover:not(:disabled) {
+  filter: brightness(1.04);
+}
+
+@keyframes wave-drift {
   0%,
   100% {
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+    transform: translateX(0);
   }
   50% {
-    box-shadow:
-      0 0 18px rgba(59, 130, 246, 0.85),
-      0 0 8px rgba(239, 68, 68, 0.45);
+    transform: translateX(-3%);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .login-wash,
-  .login-mark {
+  .login-wave-a,
+  .login-wave-b,
+  .login-wave-c {
     animation: none;
   }
 }
