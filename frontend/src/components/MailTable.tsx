@@ -17,6 +17,8 @@ export type MailDoc = {
     received_date?: string | null
     mail_priority?: string | null
     volume?: string | null
+    department?: string | null
+    department_relation?: { name?: string } | null
   }
 }
 
@@ -44,7 +46,15 @@ function day(value?: string | null) {
   return value.slice(0, 10)
 }
 
-export function MailTable({ docs, empty }: { docs: MailDoc[]; empty: string }) {
+export function MailTable({
+  docs,
+  empty,
+  showDepartment = false,
+}: {
+  docs: MailDoc[]
+  empty: string
+  showDepartment?: boolean
+}) {
   const { page, setPage, slice, total, pageSize } = usePagedRows(docs)
 
   return (
@@ -55,6 +65,7 @@ export function MailTable({ docs, empty }: { docs: MailDoc[]; empty: string }) {
             <tr>
               <th>Activity entry</th>
               <th>Mail type</th>
+              {showDepartment && <th>Department</th>}
               <th>Mail from</th>
               <th>Mail subject</th>
               <th>File no.</th>
@@ -69,10 +80,15 @@ export function MailTable({ docs, empty }: { docs: MailDoc[]; empty: string }) {
             {slice.map((d) => {
               const reg = d.registration
               const priority = reg?.mail_priority || 'normal'
+              const mailType =
+                reg?.mail_type === 'MEMO' ? 'Internal memo' : reg?.mail_type || '—'
+              const dept =
+                reg?.department_relation?.name || reg?.department || '—'
               return (
                 <tr key={d.id}>
                   <td>{stamp(d.updated_at)}</td>
-                  <td>{reg?.mail_type || '—'}</td>
+                  <td>{mailType}</td>
+                  {showDepartment && <td>{dept}</td>}
                   <td>{reg?.sender_or_origin || '—'}</td>
                   <td className="mail-subject">{reg?.mail_subject || reg?.mail_subject_type || '—'}</td>
                   <td>{reg?.file_number || '—'}</td>
