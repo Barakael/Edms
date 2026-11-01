@@ -11,12 +11,12 @@ const CRUMBS: Record<string, string> = {
   '/queue': 'Mail preview',
   '/archive': 'Archives',
   '/files': 'Files',
-  '/register': 'Register Mail',
+  '/register': 'Incoming Documents',
   '/email-drafts': 'Drafts',
+  '/bulk-uploads': 'Bulk Uploads',
   '/search': 'Trace mail movement',
   '/submit': 'Submit document',
   '/regions': 'Regions',
-  '/stations': 'Stations',
   '/departments': 'Departments',
   '/staff': 'Staff',
   '/users': 'Staff',
@@ -32,8 +32,6 @@ const ROLE_LABEL: Record<string, string> = {
   admin: 'System admin',
   registrar: 'Registry',
   senior_manager: 'Senior manager',
-  hos: 'Head of station',
-  station_supervisor: 'Station supervisor',
   hod: 'Head of department',
   staff: 'Staff',
 }
@@ -159,7 +157,7 @@ export function AppShell() {
     <>
       <div className="shell-nav-label">Mail movement</div>
       {isRegistry && <NavLink to="/email-drafts">1.0 Drafts</NavLink>}
-      {isRegistry && <NavLink to="/register">2.0 Register Mail</NavLink>}
+      {isRegistry && <NavLink to="/bulk-uploads">2.0 Bulk Uploads</NavLink>}
       {seesPreview && <NavLink to="/queue">3.0 Preview Box</NavLink>}
       <NavLink to="/" end>
         4.0 Inbox
@@ -169,17 +167,16 @@ export function AppShell() {
       <NavLink to="/search">7.0 Trace mail movement</NavLink>
       {!isRegistry && (
         <NavLink to="/submit">
-          {user?.role === 'station_supervisor' ? '8.0 Internal memo' : '8.0 Submit document'}
+          {user?.role === 'staff' ? '8.0 Internal memo' : '8.0 Submit document'}
         </NavLink>
       )}
-      {isRegistry && (
+      {(isRegistry || user?.role === 'hod') && (
         <>
           <div className="shell-nav-box">8.0 Administration</div>
-          <NavLink to="/regions">Regions</NavLink>
-          <NavLink to="/stations">Stations</NavLink>
-          <NavLink to="/departments">Departments</NavLink>
+          {isRegistry && <NavLink to="/regions">Regions</NavLink>}
+          {isRegistry && <NavLink to="/departments">Departments</NavLink>}
           <NavLink to="/staff">Staff</NavLink>
-          <NavLink to="/roles">Roles</NavLink>
+          {isRegistry && <NavLink to="/roles">Roles</NavLink>}
         </>
       )}
       <NavLink to="/notifications">9.0 Notifications</NavLink>
@@ -232,7 +229,7 @@ export function AppShell() {
               </button>
             </span>
             <Link to={createTo} className="shell-create" onClick={() => setMenuOpen(false)}>
-              Create new
+              Create Memo
             </Link>
           </div>
         </header>
